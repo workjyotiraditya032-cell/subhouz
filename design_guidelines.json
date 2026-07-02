@@ -1,0 +1,117 @@
+{
+  "theme": "Hybrid (Dark Marketing Hero + Light Admin Dashboard)",
+  "archetype": "Archetype 5 (Luxury SaaS) + Archetype 4 (Swiss & High-Contrast)",
+  "brand_identity": {
+    "name": "Subhouz",
+    "tone": "Ultra-premium, authoritative, highly efficient, secure"
+  },
+  "typography": {
+    "font_families": {
+      "headings": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "rules": {
+      "h1": "text-5xl sm:text-6xl tracking-tighter font-semibold leading-tight",
+      "h2": "text-3xl sm:text-4xl tracking-tight font-medium",
+      "h3": "text-xl sm:text-2xl tracking-tight font-medium",
+      "body": "text-sm sm:text-base leading-relaxed tracking-normal",
+      "labels": "text-xs uppercase tracking-[0.2em] font-bold"
+    }
+  },
+  "colors": {
+    "marketing_dark": {
+      "background": "#050B14",
+      "surface": "#0A1128",
+      "surface_glass": "rgba(255, 255, 255, 0.03)",
+      "border_glass": "rgba(255, 255, 255, 0.1)",
+      "primary": "#1D4ED8",
+      "accent": "#10B981",
+      "text_main": "#FFFFFF",
+      "text_muted": "#94A3B8"
+    },
+    "dashboard_light": {
+      "background": "#FAFBFC",
+      "surface": "#FFFFFF",
+      "border": "#E2E8F0",
+      "primary": "#1D4ED8",
+      "primary_hover": "#1E40AF",
+      "accent": "#10B981",
+      "accent_hover": "#059669",
+      "text_main": "#0F172A",
+      "text_muted": "#64748B",
+      "danger": "#EF4444",
+      "warning": "#F59E0B"
+    }
+  },
+  "layout_and_spacing": {
+    "philosophy": "Strict 8px grid system inspired by Linear. Generous spacing for marketing, high-density for dashboards.",
+    "marketing_grid": "Bento 'Tetris' Grid, gap-8 to gap-12. Asymmetrical balance.",
+    "dashboard_grid": "Control Room Grid, gap-4 or gap-6. Every pixel utilized. h-full for equal heights.",
+    "border_radius": {
+      "cards": "rounded-xl",
+      "buttons": "rounded-lg",
+      "inputs": "rounded-md"
+    }
+  },
+  "surfaces_and_effects": {
+    "hero_glass_cards": "backdrop-blur-2xl bg-white/5 border border-white/10 shadow-[0_8px_32px_rgba(16,185,129,0.15)]",
+    "dashboard_cards": "bg-white border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow duration-200",
+    "glow_effects": "Use absolute positioning with blur-3xl and 20-30% opacity behind key elements. (e.g., bg-emerald-500/20 blur-[100px])"
+  },
+  "components": {
+    "buttons": "Linear-style. 8px padding vertical, 16px horizontal. rounded-lg. Primary uses Royal Blue, subtle hover lift. Include data-testid.",
+    "inputs": "Shadcn based. Height 40px (h-10), rounded-md, 1px border. Focus ring uses Emerald or Royal Blue.",
+    "tables": "Shadcn based. Dense padding (py-2 px-4). Sticky header. 1px bottom borders for rows, no vertical borders. text-sm.",
+    "navigation": "Dark glassmorphic header for marketing (z-50, backdrop-blur-xl bg-[#050B14]/80 border-b border-white/10). Clean white sidebar for admin dashboard."
+  },
+  "motion_and_interaction": {
+    "hero_animations": "Framer Motion. Staggered fade-up (y: 20, opacity: 0). Floating glass cards using yoyo animation (y: [0, -10, 0], duration: 4).",
+    "live_counters": "Framer Motion animate function for counting up to specific numbers (e.g., Total Rent Collected).",
+    "microinteractions": "Button hover: slight scale (scale: 0.98 for click). Row hover in tables: bg-slate-50."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Minimalist, stroke-width 1.5 or 2 depending on weight context."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "hero_background_abstract",
+        "url": "https://images.unsplash.com/photo-1709626011485-6fe000ea2dbc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdlb21ldHJpYyUyMDNkJTIwZ2xhc3N8ZW58MHx8fHwxNzgyMjg1NTExfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Dark blue/black abstract geometric 3D glass, perfect for the hero background with an overlay."
+      },
+      {
+        "category": "feature_hostel_architecture",
+        "url": "https://images.unsplash.com/photo-1479292889369-1a48f234247e",
+        "description": "Modern clear glass building for feature sections to represent the high-end property management aspect."
+      },
+      {
+        "category": "testimonial_avatar_1",
+        "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4Mjg3MTA5NXww&ixlib=rb-4.1.0&q=85",
+        "description": "Professional smiling woman for testimonial or resident profile placeholder."
+      },
+      {
+        "category": "testimonial_avatar_2",
+        "url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4Mjg3MTA5NXww&ixlib=rb-4.1.0&q=85",
+        "description": "Professional man in henley top for testimonial or resident profile placeholder."
+      },
+      {
+        "category": "testimonial_avatar_3",
+        "url": "https://images.unsplash.com/photo-1607503873903-c5e95f80d7b9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4Mjg3MTA5NXww&ixlib=rb-4.1.0&q=85",
+        "description": "Professional woman for testimonial."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "1. HYBRID THEME AESTHETIC: The marketing pages (Hero, Home) must be Dark Theme. The internal Dashboard must be Light Theme. Do not mix them improperly.",
+    "2. HERO SECTION: Implement an ultra-premium hero using `framer-motion`. Include 2-3 floating glass cards (e.g., 'Total Beds', 'Rent Collected') with backdrop-blur. Use the dark blue/black abstract geometric image as a subtle background with a heavy dark overlay (bg-[#050B14]/80) so it doesn't distract. Add an Emerald Green radial glow behind the floating cards.",
+    "3. DASHBOARD AESTHETIC: Follow the 'Linear/Vercel' look. Use `#FAFBFC` for the main background. Cards should be crisp `#FFFFFF` with a `1px` border of `#E2E8F0` and minimal shadow. Dense data display using an 8px scale.",
+    "4. TYPOGRAPHY: Ensure you use `Outfit` for headings and `Manrope` for body text. Apply `tracking-tight` to headings. Include Google Fonts links in the index.html or import them in CSS.",
+    "5. SHADCN UI: Use shadcn components extensively for the dashboard (Tables, Dialogs, Select, Dropdowns, DatePicker). Customize their default borders and radii to match the guidelines (border-[#E2E8F0], rounded-md/lg).",
+    "6. RENT TRACKER: For the rent tracker widget, implement a 'one-tap mark paid' button inside a dense list or table. Use the Emerald accent color for the 'Paid' state.",
+    "7. TESTING: ALL interactive elements (buttons, inputs, tabs, row actions) MUST have a `data-testid` attribute (e.g., `data-testid=\"login-submit-btn\"`).",
+    "8. AUTOMATION UI: For the n8n-style automation engine, use visually distinct nodes or cards connected to represent WhatsApp challans/reminders.",
+    "9. DO NOT USE PLACEHOLDER IMAGES: Rely strictly on the media URLs provided in this document."
+  ]
+}
