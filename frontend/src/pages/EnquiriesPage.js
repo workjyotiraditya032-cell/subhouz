@@ -223,10 +223,10 @@ export default function EnquiriesPage() {
                   {user?.role === 'super_admin' && (
                     <div>
                       <Label className="text-[10px] text-[#94A3B8] uppercase">Assign To</Label>
-                      <Select value={selected.assigned_to || ''} onValueChange={v => updateEnquiry(selected.id, { assigned_to: v })}>
+                      <Select value={selected.assigned_to || '__none__'} onValueChange={v => updateEnquiry(selected.id, { assigned_to: v === '__none__' ? '' : v })}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Unassigned" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Unassigned</SelectItem>
+                          <SelectItem value="__none__">Unassigned</SelectItem>
                           {users.filter(u => u.role === 'hostel_admin').map(u => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}
                         </SelectContent>
                       </Select>

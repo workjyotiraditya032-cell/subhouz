@@ -87,3 +87,21 @@ Build a production-ready Hostel Management Platform named Subhouz with ultra-pre
 - ✅ New /api/hostels/public/:id endpoint: full hostel with room list, per-room availability
 - ✅ Malformed ObjectId returns 404 (not 500) — parse_oid helper
 - ✅ Testing: Backend 22/22, Frontend 100%
+
+## Iteration 4 — Admin Panel Enhancements (July 2, 2026)
+### New Modules Added:
+- ✅ **Enquiry Management** (/dashboard/enquiries): Stats bar, table with inline status changes, detail dialog with assign-to, follow-up notes. RBAC: Super Admin full access, Hostel Admin view/update their hostel only
+- ✅ **Electricity Billing** (/dashboard/electricity): Month selector, 7 stat cards, generate monthly bills for all residents, create individual bills with auto-calc (Units = Current - Previous, Total = Units * Rate + Additional), mark as paid
+- ✅ **Admin Management** (/dashboard/admin-management): Create/edit/toggle-status/reset-password/delete admin users. Hostel assignment. Super Admin only
+- ✅ **Resident Document Uploads**: Backend endpoint PUT /api/residents/:id/documents for photo, Aadhaar, emergency contacts
+- ✅ **Website Images API**: CRUD for managing website images by category (hero, gallery, rooms, etc.)
+- ✅ Updated sidebar: Enquiries, Electricity, Admin Users added
+- ✅ Backend: 21/21 tests passed (100%)
+- ✅ Frontend: All pages functional, critical SelectItem crash fixed
+- ✅ RBAC: Self-delete guard fixed (string comparison)
+
+### P0 (Next)
+- Frontend for resident document upload UI
+- Frontend for website image management UI
+- Electricity bill PDF download
+- RBAC hostel_id ownership checks on electricity bill endpoints

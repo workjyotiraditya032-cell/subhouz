@@ -133,7 +133,7 @@ async def delete_admin_user(user_id: str, request: Request):
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can delete users")
-    if user_id == user["_id"]:
+    if str(user["_id"]) == user_id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
     result = await db.users.delete_one({"_id": parse_oid(user_id)})
     if result.deleted_count == 0:
