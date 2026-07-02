@@ -92,6 +92,64 @@ class TestHostels:
         assert len(hostels) == 1, f"Hostel admin should see 1 hostel, got {len(hostels)}"
 
 
+# ----- Public Hostels (iteration 3) -----
+class TestPublicHostels:
+    def test_public_list_no_auth(self):
+        r = requests.get(f"{BASE_URL}/api/hostels/public", timeout=15)
+        assert r.status_code == 200
+        hostels = r.json()
+        assert isinstance(hostels, list)
+        assert len(hostels) >= 3
+        h = hostels[0]
+        for k in ["id", "name", "address", "hostel_type", "starting_rent",
+                  "total_rooms", "total_beds", "available_beds", "occupancy_rate",
+                  "average_rating", "review_count", "facilities"]:
+            assert k in h, f"Missing key {k} in public hostel; keys: {list(h.keys())}"
+        assert isinstance(h["facilities"], list) and len(h["facilities"]) > 0
+        assert isinstance(h["starting_rent"], (int, float))
+        assert 0 <= h["occupancy_rate"] <= 100
+        # deterministic rating in seeded range
+        assert 4.2 <= h["average_rating"] <= 4.8
+
+    def test_public_types_present(self):
+        r = requests.get(f"{BASE_URL}/api/hostels/public", timeout=15)
+        assert r.status_code == 200
+        types = {h["hostel_type"] for h in r.json()}
+        # Expect boys, girls, mixed among seeded hostels
+        assert "boys" in types
+        assert "girls" in types
+        assert "mixed" in types
+
+    def test_public_detail_by_id(self):
+        listing = requests.get(f"{BASE_URL}/api/hostels/public", timeout=15).json()
+        hid = listing[0]["id"]
+        r = requests.get(f"{BASE_URL}/api/hostels/public/{hid}", timeout=15)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["id"] == hid
+        assert "rooms" in d and isinstance(d["rooms"], list)
+        # rooms should have expected keys
+        if d["rooms"]:
+            room = d["rooms"][0]
+            for k in ["id", "room_number", "rent", "capacity", "total_beds", "available_beds"]:
+                assert k in room, f"Missing key {k} in room; keys: {list(room.keys())}"
+        # starting_rent should equal min room rent when rooms exist
+        if d["rooms"]:
+            rents = [r["rent"] for r in d["rooms"] if r.get("rent")]
+            if rents:
+                assert d["starting_rent"] == min(rents)
+
+    def test_public_detail_invalid_id(self):
+        # Use a valid ObjectId format that doesn't exist
+        r = requests.get(f"{BASE_URL}/api/hostels/public/507f1f77bcf86cd799439011", timeout=15)
+        assert r.status_code == 404
+
+    def test_public_detail_malformed_id(self):
+        r = requests.get(f"{BASE_URL}/api/hostels/public/not-a-valid-id", timeout=15)
+        # Should not 500 — either 400 or 404
+        assert r.status_code in (400, 404, 422), f"Got {r.status_code}: {r.text}"
+
+
 # ----- Rooms -----
 class TestRooms:
     def test_list_rooms(self, super_session):

@@ -137,7 +137,7 @@ export default function HomePage() {
   /* ── NAV ─────────────────────────────────────────── */
   const navLinks = [
     { label: 'Home', action: () => scrollTo('hero') },
-    { label: 'Hostels', action: () => scrollTo('hostels') },
+    { label: 'Hostels', action: () => navigate('/hostels') },
     { label: 'Amenities', action: () => scrollTo('amenities') },
     { label: 'Gallery', action: () => scrollTo('gallery') },
     { label: 'Contact', action: () => scrollTo('contact') },
@@ -235,7 +235,7 @@ export default function HomePage() {
             >
               <Button
                 data-testid="hero-browse-btn"
-                onClick={() => scrollTo('hostels')}
+                onClick={() => navigate('/hostels')}
                 className="bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white rounded-full px-7 h-12 text-sm font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 transition-all duration-200 hover:scale-[1.02]"
               >
                 Browse Our Hostels <ArrowRight className="w-4 h-4 ml-2" />
@@ -320,12 +320,12 @@ export default function HomePage() {
                       </p>
                     )}
                     <Button
-                      onClick={() => scrollTo('contact')}
+                      onClick={() => navigate(`/hostels/${h.id}`)}
                       variant="outline"
                       className="w-full rounded-full border-[#2D5F3F]/30 text-[#2D5F3F] hover:bg-[#2D5F3F] hover:text-white text-sm font-semibold h-10 transition-all duration-200"
                       data-testid={`enquire-hostel-${h.id}`}
                     >
-                      Enquire About This Hostel
+                      View Details
                     </Button>
                   </div>
                 </div>

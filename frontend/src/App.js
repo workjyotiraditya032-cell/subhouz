@@ -4,6 +4,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "sonner";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
+import HostelListingPage from "./pages/HostelListingPage";
+import HostelDetailPage from "./pages/HostelDetailPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import HostelsPage from "./pages/HostelsPage";
@@ -20,6 +22,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/hostels" element={<HostelListingPage />} />
+          <Route path="/hostels/:hostelId" element={<HostelDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />

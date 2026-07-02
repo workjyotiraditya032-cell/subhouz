@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration 3 tested new public hostel listing (/hostels) and detail (/hostels/:id) pages plus backend public endpoints. Backend 21/22 (95.5%) — 1 minor bug: malformed hostel_id returns 500 instead of 404. Frontend 100% — all listed behaviours verified end-to-end (listing header, 3 cards, filter pills, sort, facilities, View Details nav, detail hero/rooms/facilities, enquiry form submission, homepage 'Browse Our Hostels' -> /hostels). All previously working features remain intact.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/hostels/public/{hostel_id}",
+        "issue": "Returns 500 Internal Server Error when hostel_id is a malformed ObjectId (e.g. 'not-a-valid-id'). Caused by unhandled bson.errors.InvalidId in ObjectId(hostel_id). Should return 400 or 404. Wrap ObjectId() in try/except in /app/backend/routes/hostel_routes.py get_hostel_public (line 109).",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix GET /api/hostels/public/{hostel_id} to return 400/404 (not 500) for malformed ObjectId. Wrap ObjectId(hostel_id) in try/except InvalidId in hostel_routes.py:109."
+  ],
+  "critical_code_review_comments": [
+    "hostel_routes.py get_hostel_public: ObjectId(hostel_id) is not wrapped in try/except — malformed IDs crash with 500 instead of returning 404. Same issue likely applies to other endpoints that accept ObjectId path params (get_hostel line 210, update_hostel line 254, delete_hostel line 269).",
+    "hostel_routes.py: The random-seeded average_rating/review_count logic is duplicated verbatim between /public and /public/:id. Extract to a helper to keep them consistent and DRY.",
+    "hostel_routes.py list_hostels_public: N+1 query pattern (per-hostel: count rooms + count beds x2 + find rooms). Fine for 3 seeded hostels but will not scale; consider aggregate pipeline if hostel count grows.",
+    "HostelListingPage.js: uses .filter().sort() on every render which mutates a fresh array — OK, but should be wrapped in useMemo to avoid re-sorting on unrelated state changes (e.g. mobileNav toggle).",
+    "HostelDetailPage.js line 63: 'catch { ... }' with no parameter and no logging — errors are swallowed. Add console.error(err) or Sentry-style logging for debugability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestPublicHostels class with 5 tests)"
+  ],
+  "success_rate": {
+    "backend": "95.5% (21/22)",
+    "frontend": "100%"
+  },
+  "test_credentials": "admin@subhouz.com / SubhouzAdmin@2026 (verified). Hostel admin: jogmaya.admin@subhouz.com / hostel@123 (verified).",
+  "seed_data_creation": "One test enquiry submitted via detail page enquiry form (name: TEST_User, phone: 9999988888, email: test@example.com). Toast 'Enquiry sent! We'll get back to you shortly.' confirmed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All new listing/detail features verified. Data-testids in production: listing-header, listing-card-{id}, filter-{all|boys|girls|mixed}, sort-select, view-details-{id}, enquire-listing-{id}, call-hostel-{id}, facility-{hostelId}-{index}, detail-hero, detail-enquiry-form, detail-enquiry-{name|phone|email|message}, detail-submit-enquiry, room-detail-{id}, detail-enquiry-btn. Boys/Girls/Co-ed filters correctly show 1 hostel each. Sort 'Lowest Rent' verified ascending (₹3,500, ₹4,000, ₹5,000). Detail page shows 7 room cards for GS Residency. Enquiry form successfully hits POST /api/automation/enquiries. Only unresolved item is minor: malformed hostel_id returns 500.",
+  "rca_of_the_issue": "Backend 500 on malformed ObjectId: bson.ObjectId('not-a-valid-id') raises bson.errors.InvalidId which is not caught, propagates to FastAPI as unhandled 500. Fix: wrap in try/except InvalidId and raise HTTPException(404). Reproduction: curl https://rent-track-hub.preview.emergentagent.com/api/hostels/public/not-a-valid-id -> 500. Same class of bug likely in authenticated /api/hostels/{id}, PUT, DELETE endpoints — recommend introducing a shared parse_object_id() helper."
+}
