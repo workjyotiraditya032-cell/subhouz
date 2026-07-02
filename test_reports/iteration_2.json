@@ -1,0 +1,24 @@
+{
+  "summary": "Frontend-only regression tested Subhouz homepage redesign (SaaS -> warm hospitality brand). All 10 requested features passed: hero carousel with Fraunces headline, nav without Sign In, 3 hostel cards, 6 amenities, 6 gallery images, enquiry form (submit shows toast 'Enquiry sent! We\\'ll get back to you shortly.'), footer admin login link, /login page, super admin login redirects to /dashboard, dashboard sidebar + stats intact.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "HomePage.js line 106-112: Hostel list is hard-coded on the client (static fallback) instead of fetching a public /api/hostels endpoint. If a real hostel is added via the admin panel, the public homepage will still show the same 3 static entries. Consider adding a public GET /api/hostels/public route (or making the existing one work without auth) and fetching it in useEffect.",
+    "HomePage.js line 121-124: The catch block on submitEnquiry silently shows a success toast even when the POST fails, hiding real API errors from the user and from developers. Recommend showing an error toast (or at least logging) on failure and only clearing the form when the request truly succeeds.",
+    "HomePage.js: External Unsplash hero/gallery/hostel images are fetched at page load with no lazy fallback for the hero. If Unsplash is slow or blocks the request the hero appears blank behind the warm overlay. Consider self-hosting a couple of representative images or adding a solid brand-colour fallback.",
+    "Login page 'Back to home' element is rendered as a <button type='submit'> (see element dump) instead of a link/anchor. Not functionally broken here because it's outside the form, but semantically incorrect and could accidentally submit if wrapped in a form later."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "not tested (frontend-only request)", "frontend": "100%" },
+  "test_credentials": "admin@subhouz.com / SubhouzAdmin@2026 (verified working)",
+  "seed_data_creation": "None. One test enquiry submitted via public form (name: Test User, phone: +91 9999988888).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Homepage redesign fully verified. All data-testids present and functional: hero-section, hero-browse-btn, hero-enquiry-btn, nav-logo, nav-enquiry-btn, nav-{home,hostels,amenities,gallery,contact}, hostels-section, hostel-public-card-{1,2,3}, enquire-hostel-{1,2,3}, amenities-section, gallery-section, contact-section, enquiry-form, enquiry-{name,phone,email,hostel,message}, submit-enquiry-btn, footer, footer-admin-login. Login uses login-email-input / login-password-input / login-submit-btn. Homepage hostel list is currently hard-coded (see review comment)."
+}

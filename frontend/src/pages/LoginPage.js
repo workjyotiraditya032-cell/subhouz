@@ -32,10 +32,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050B14] flex items-center justify-center relative overflow-hidden" data-testid="login-page">
+    <div className="min-h-screen bg-[#1C1917] flex items-center justify-center relative overflow-hidden" data-testid="login-page">
       {/* Background effects */}
-      <div className="absolute top-1/4 left-1/3 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/3 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/3 w-[400px] h-[400px] bg-[#2D5F3F]/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/3 w-[300px] h-[300px] bg-[#D4A574]/8 rounded-full blur-[120px] pointer-events-none" />
       <div className="hero-grid" />
 
       <motion.div
@@ -45,14 +45,16 @@ export default function LoginPage() {
         className="w-full max-w-md mx-4 relative z-10"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Building2 className="w-8 h-8 text-[#10B981]" />
-          <span className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Outfit' }}>Subhouz</span>
+        <div className="flex items-center justify-center gap-2.5 mb-8">
+          <div className="w-9 h-9 rounded-lg bg-[#2D5F3F] flex items-center justify-center">
+            <span className="text-white font-bold text-base" style={{ fontFamily: "'Fraunces', serif" }}>S</span>
+          </div>
+          <span className="text-2xl font-semibold text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
         </div>
 
         <div className="glass-card p-8">
-          <h2 className="text-xl font-semibold text-white text-center mb-1" style={{ fontFamily: 'Outfit' }}>Welcome back</h2>
-          <p className="text-sm text-slate-400 text-center mb-6">Sign in to your dashboard</p>
+          <h2 className="text-xl font-semibold text-white text-center mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Admin Portal</h2>
+          <p className="text-sm text-[#A39889] text-center mb-6">Sign in to manage your hostels</p>
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 text-sm text-red-400" data-testid="login-error">
@@ -99,7 +101,7 @@ export default function LoginPage() {
               data-testid="login-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] text-white h-11 rounded-lg font-semibold shadow-lg shadow-blue-600/25 mt-2"
+              className="w-full bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white h-11 rounded-lg font-semibold shadow-lg shadow-[#2D5F3F]/25 mt-2"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -113,8 +115,8 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-white/5">
-            <p className="text-xs text-slate-500 text-center">
-              Demo: admin@subhouz.com / SubhouzAdmin@2026
+            <p className="text-xs text-[#6B5E54] text-center">
+              This is the admin portal for hostel management.
             </p>
           </div>
         </div>
