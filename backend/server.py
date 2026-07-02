@@ -35,6 +35,10 @@ from routes.resident_routes import router as resident_router
 from routes.rent_routes import router as rent_router
 from routes.dashboard_routes import router as dashboard_router
 from routes.automation_routes import router as automation_router
+from routes.enquiry_routes import router as enquiry_router
+from routes.admin_routes import router as admin_router
+from routes.electricity_routes import router as electricity_router
+from routes.website_images_routes import router as website_images_router
 
 app.include_router(auth_router)
 app.include_router(hostel_router)
@@ -43,6 +47,10 @@ app.include_router(resident_router)
 app.include_router(rent_router)
 app.include_router(dashboard_router)
 app.include_router(automation_router)
+app.include_router(enquiry_router)
+app.include_router(admin_router)
+app.include_router(electricity_router)
+app.include_router(website_images_router)
 
 @app.get("/api")
 async def root():

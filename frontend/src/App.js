@@ -14,6 +14,9 @@ import ResidentsPage from "./pages/ResidentsPage";
 import RentTrackerPage from "./pages/RentTrackerPage";
 import AutomationPage from "./pages/AutomationPage";
 import SettingsPage from "./pages/SettingsPage";
+import EnquiriesPage from "./pages/EnquiriesPage";
+import AdminManagementPage from "./pages/AdminManagementPage";
+import ElectricityPage from "./pages/ElectricityPage";
 import DashboardLayout from "./components/DashboardLayout";
 
 function App() {
@@ -31,7 +34,10 @@ function App() {
             <Route path="rooms" element={<RoomsPage />} />
             <Route path="residents" element={<ResidentsPage />} />
             <Route path="rent-tracker" element={<RentTrackerPage />} />
+            <Route path="enquiries" element={<EnquiriesPage />} />
+            <Route path="electricity" element={<ElectricityPage />} />
             <Route path="automation" element={<AutomationPage />} />
+            <Route path="admin-management" element={<AdminManagementPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

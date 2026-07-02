@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Building2, LayoutDashboard, Home, DoorOpen, Users, CreditCard, Zap, Settings, LogOut, Bell, Search, ChevronDown, Menu, X } from 'lucide-react';
+import { Building2, LayoutDashboard, Home, DoorOpen, Users, CreditCard, Zap, Settings, LogOut, Bell, Search, ChevronDown, Menu, X, MessageCircle, Bolt, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import api from '../lib/api';
@@ -12,7 +12,10 @@ const navItems = [
   { path: '/dashboard/rooms', label: 'Rooms & Beds', icon: DoorOpen },
   { path: '/dashboard/residents', label: 'Residents', icon: Users },
   { path: '/dashboard/rent-tracker', label: 'Rent Tracker', icon: CreditCard },
+  { path: '/dashboard/enquiries', label: 'Enquiries', icon: MessageCircle },
+  { path: '/dashboard/electricity', label: 'Electricity', icon: Bolt },
   { path: '/dashboard/automation', label: 'Automation', icon: Zap },
+  { path: '/dashboard/admin-management', label: 'Admin Users', icon: ShieldCheck, superAdminOnly: true },
   { path: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 

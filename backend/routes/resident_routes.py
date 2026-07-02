@@ -209,3 +209,36 @@ async def checkout_resident(resident_id: str, request: Request):
         "timestamp": datetime.now(timezone.utc)
     })
     return {"message": "Resident checked out"}
+
+
+@router.put("/{resident_id}/documents")
+async def update_resident_documents(resident_id: str, request: Request):
+    """Upload/update resident documents (photo, Aadhaar, etc.) as base64."""
+    db = get_db()
+    user = await get_current_user(request, db)
+    body = await request.json()
+    
+    resident = await db.residents.find_one({"_id": ObjectId(resident_id)})
+    if not resident:
+        raise HTTPException(status_code=404, detail="Resident not found")
+    if user["role"] == "hostel_admin" and user.get("hostel_id") != resident.get("hostel_id"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    updates = {}
+    for field in ("photo_url", "aadhaar_number", "aadhaar_front", "aadhaar_back", "id_type", "id_number", "id_verified", "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relation"):
+        if field in body:
+            updates[field] = body[field]
+    
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc)
+        await db.residents.update_one({"_id": ObjectId(resident_id)}, {"$set": updates})
+    
+    await db.activity_logs.insert_one({
+        "user_id": user["_id"], "user_name": user.get("name", ""),
+        "hostel_id": resident.get("hostel_id"), "action": "resident_documents_updated",
+        "entity_type": "resident", "entity_id": resident_id,
+        "details": f"Updated documents for: {resident.get('name', '')}",
+        "timestamp": datetime.now(timezone.utc)
+    })
+    
+    return {"message": "Documents updated"}

@@ -1,0 +1,58 @@
+{
+  "summary": "Iteration 4 tested 3 new admin pages (Enquiries, Electricity, AdminManagement) and 4 new backend route modules. Backend: 21/21 tests PASSED (100%) covering enquiry list/stats/get/update/notes/delete, admin CRUD/toggle/reset, electricity list/stats/create/generate-monthly/mark-paid, resident documents, plus regression on hostels/dashboard/rent. Frontend: all sidebar nav items render (Enquiries, Electricity, Admin Users), Electricity and Admin pages fully functional (Add Bill dialog opens, Create Admin dialog opens and successfully creates a user, 6 stat cards on Enquiries page). RBAC verified for hostel admin (nav-admin-users + nav-hostels hidden). CRITICAL BUG FOUND: clicking any enquiry row opens the detail dialog which immediately CRASHES the React tree (blank white page) due to a Radix UI Select constraint violation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "EnquiriesPage.js (enquiry detail dialog)",
+        "issue": "Clicking any enquiry row opens the detail dialog, which immediately crashes the entire React app rendering a blank white page. Root cause: line 229 `<SelectItem value=\"\">Unassigned</SelectItem>` for the assigned_to Select — Radix UI's <Select.Item> explicitly forbids empty-string values (throws: 'A <Select.Item /> must have a value prop that is not an empty string'). This propagates as an uncaught error and unmounts the tree because no error boundary is defined. As a result, users cannot view enquiry details, change status inside the dialog, or add follow-up notes.",
+        "selector": "[data-testid=\"enquiry-row-*\"] -> dialog -> assigned_to Select",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "Multiple DialogContent (EnquiriesPage, ElectricityPage, AdminManagementPage)",
+        "issue": "Radix a11y warning: 'Missing Description or aria-describedby={undefined} for {DialogContent}'. Add <DialogDescription> or aria-describedby to each DialogContent for a11y compliance.",
+        "selector": "DialogContent components",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_admin_features.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iter4_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix EnquiriesPage.js line ~229 — replace `<SelectItem value=\"\">Unassigned</SelectItem>` with a non-empty sentinel like `<SelectItem value=\"__unassigned__\">Unassigned</SelectItem>` and translate it to null/empty in the onValueChange handler and in the value prop (also map incoming empty/null assigned_to to '__unassigned__'). This is currently blocking the entire enquiry detail flow (dialog + note-adding + assign-to + status change from within dialog).",
+    "Add error boundary around dashboard routes so a single Select crash does not blank the entire app.",
+    "Add DialogDescription (or aria-describedby) to DialogContent in EnquiriesPage / ElectricityPage / AdminManagementPage for a11y."
+  ],
+  "critical_code_review_comments": [
+    "EnquiriesPage.js:229 — SelectItem with value=\"\" is a Radix invariant violation that crashes the app. Any Select where 'no selection' is a valid state must use a sentinel string.",
+    "No error boundary in App.js / DashboardLayout.js — a single component throw takes down the whole dashboard (observed: blank white page after enquiry dialog crash). Wrap route outlet in a React error boundary.",
+    "admin_routes.py delete_admin_user compares `user_id == user[\"_id\"]` but user[\"_id\"] is an ObjectId while user_id is a string — this string-vs-ObjectId comparison will always be False, so the 'cannot delete yourself' guard is effectively bypassed. Use `str(user[\"_id\"]) == user_id`.",
+    "electricity_routes.py generate_monthly_bills: bill.previous_reading rolls forward from last bill's current_reading but on first generation defaults to 0 — this is fine, but consider seeding from resident.initial_reading if the admin captured it at check-in.",
+    "electricity_routes.py mark_bill_paid: no RBAC check — a hostel_admin can mark any bill (including another hostel's bill) as paid if they know the id. Add hostel_id ownership check like update_bill/create_bill.",
+    "electricity_routes.py update_bill: same — no hostel_id ownership check for hostel_admin role.",
+    "enquiry_routes.py: filter param `follow-up` uses a hyphen (kebab-case) while pydantic/query naming convention is snake_case elsewhere — inconsistent (stats returns follow_up but status filter expects follow-up). Not a bug but confusing.",
+    "resident_routes.py update_resident_documents uses `await request.json()` directly instead of a Pydantic model — no validation on payload types/sizes; large base64 blobs could exhaust memory. Add a Pydantic model with field size limits."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_new_admin_features.py (NEW - 21 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21)",
+    "frontend": "~85% (Electricity 100%, Admin Management 100%, Enquiries list/stats/inline-status 100%, Enquiries detail dialog 0% - crashes)"
+  },
+  "test_credentials": "admin@subhouz.com / SubhouzAdmin@2026 (verified). jogmaya.admin@subhouz.com / hostel@123 (verified).",
+  "seed_data_creation": "38 electricity bills generated via 'Generate Monthly Bills' for July 2026. 1 manual bill created for June 2026 (Amit Kumar, ₹650). 1 bill marked as paid (₹400 collected). 1 admin user 'TEST_UI_Admin' created via UI, then cleaned up via backend DELETE. 1 enquiry status updated to 'contacted' and 1 note added to it (via API tests).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All new admin backend APIs work perfectly. The only broken flow is the Enquiry Detail Dialog on the frontend — it crashes the entire app due to `<SelectItem value=\"\">` in EnquiriesPage.js:229. Once fixed, next agent should verify: (1) dialog opens without crash, (2) status change from within dialog persists, (3) assign-to dropdown lists hostel admins and 'Unassigned', (4) add-note-btn appends to follow_up_notes, (5) delete works for super admin only. Also verify the RBAC bug in admin_routes.py delete_admin_user (self-delete guard uses wrong comparison). Data-testids confirmed present: enquiries-page, enquiry-stat-{total|new|contacted|follow-up|converted|closed}, enquiries-table, enquiry-row-*, electricity-page, generate-bills-btn, add-bill-btn, electricity-table, pay-bill-*, current-reading, save-bill-btn, admin-management-page, create-admin-btn, admin-users-table, admin-name, admin-email, admin-password, save-admin-btn, nav-enquiries, nav-electricity, nav-admin-users.",
+  "rca_of_the_issue": "Enquiry detail dialog blank-page crash — RCA: EnquiriesPage.js line 229 renders `<SelectItem value=\"\">Unassigned</SelectItem>` for the assigned_to Select. Radix UI's Select component enforces the invariant `value !== ''` on Select.Item and throws a synchronous error during render: 'A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.' Because no <ErrorBoundary> wraps the dashboard routes, the whole subtree unmounts and shows a blank page. Reproduction: 1) login as Super Admin, 2) go to /dashboard/enquiries, 3) click any row -> app goes blank. Fix (2 lines): use sentinel value '__unassigned__' for the empty option, and normalize incoming/outgoing values (value === '__unassigned__' ? '' : value) in both the value prop and onValueChange."
+}
