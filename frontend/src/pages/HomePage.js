@@ -103,12 +103,17 @@ export default function HomePage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    // Fetch public hostel list (unauthenticated-safe endpoint won't work, use static fallback)
-    setHostels([
-      { id: '1', name: 'Jogmaya Hostel', code: 'JMH', address: 'Sitaram Nagar, Panda Kudia, Plot No- 729, near Saraswati Sishu Mandir, Shampur', city: 'Bhubaneswar', hostel_type: 'boys', phone: '+91 9876543210' },
-      { id: '2', name: 'Homely Havens Girls PG', code: 'HHG', address: 'Cluster 3, Plot no- 1587, Sikharchandi Vihar, Patia', city: 'Bhubaneswar', hostel_type: 'girls', phone: '+91 9876543211' },
-      { id: '3', name: 'GopalSarojini (GS) Residency', code: 'GSR', address: 'Ranganath Temple, Rangamatia, Tala Sahi, Rangamatia, Mancheswar', city: 'Bhubaneswar', hostel_type: 'mixed', phone: '+91 9876543212' },
-    ]);
+    // Fetch public hostel list (no auth required)
+    api.get('/hostels/public').then(res => {
+      if (res.data?.length) setHostels(res.data);
+    }).catch(() => {
+      // Fallback to static data if API unavailable
+      setHostels([
+        { id: '1', name: 'Jogmaya Hostel', code: 'JMH', address: 'Sitaram Nagar, Panda Kudia, Plot No- 729, near Saraswati Sishu Mandir, Shampur', city: 'Bhubaneswar', hostel_type: 'boys', phone: '+91 9876543210' },
+        { id: '2', name: 'Homely Havens Girls PG', code: 'HHG', address: 'Cluster 3, Plot no- 1587, Sikharchandi Vihar, Patia', city: 'Bhubaneswar', hostel_type: 'girls', phone: '+91 9876543211' },
+        { id: '3', name: 'GopalSarojini (GS) Residency', code: 'GSR', address: 'Ranganath Temple, Rangamatia, Tala Sahi, Rangamatia, Mancheswar', city: 'Bhubaneswar', hostel_type: 'mixed', phone: '+91 9876543212' },
+      ]);
+    });
   }, []);
 
   const submitEnquiry = async () => {
@@ -118,9 +123,9 @@ export default function HomePage() {
       await api.post('/automation/enquiries', enquiry);
       toast.success('Enquiry sent! We\'ll get back to you shortly.');
       setEnquiry({ name: '', phone: '', email: '', preferred_hostel: '', message: '' });
-    } catch {
-      toast.success('Enquiry received — we\'ll be in touch!');
-      setEnquiry({ name: '', phone: '', email: '', preferred_hostel: '', message: '' });
+    } catch (err) {
+      console.error('Enquiry submission error:', err);
+      toast.error('Could not send enquiry. Please try again or call us directly.');
     } finally { setSending(false); }
   };
 

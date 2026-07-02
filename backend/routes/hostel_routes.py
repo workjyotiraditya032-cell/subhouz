@@ -35,6 +35,17 @@ class HostelUpdate(BaseModel):
     reminder_grace_days: Optional[int] = None
     follow_up_days: Optional[int] = None
 
+@router.get("/public")
+async def list_hostels_public():
+    """Public endpoint - no auth required. Returns basic hostel info for the public website."""
+    db = get_db()
+    hostels = await db.hostels.find({}, {"name": 1, "code": 1, "address": 1, "city": 1, "state": 1, "phone": 1, "email": 1, "description": 1, "hostel_type": 1}).to_list(100)
+    for h in hostels:
+        h["_id"] = str(h["_id"])
+        h["id"] = h["_id"]
+    return hostels
+
+
 @router.get("")
 async def list_hostels(request: Request):
     db = get_db()

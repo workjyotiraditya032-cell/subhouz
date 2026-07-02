@@ -63,3 +63,18 @@ Build a production-ready Hostel Management Platform named Subhouz with ultra-pre
 - Dark mode toggle for dashboard
 - Mobile-responsive optimization
 - Forgot password email flow
+
+## Iteration 2 — Homepage Redesign (July 2, 2026)
+### Change: Public website redesigned from SaaS dashboard → warm hospitality brand
+- ✅ Photography-led hero with ambient image carousel (3 images, 6s crossfade)
+- ✅ Fraunces serif for headlines, DM Sans for body text
+- ✅ Warm palette: cream (#FAF7F2), forest green (#2D5F3F), terracotta (#D4A574), charcoal (#1C1917)
+- ✅ "A Place That Feels Like Home." headline — hospitality-first messaging
+- ✅ CTAs: "Browse Our Hostels" and "Send an Enquiry" — no SaaS/dashboard language
+- ✅ Hostel cards section showcasing 3 real Bhubaneswar hostels with photos + types (Boys/Girls/Co-ed)
+- ✅ Amenities section (Wi-Fi, Security, AC, etc.)
+- ✅ Gallery section with 6-image grid
+- ✅ Booking enquiry form with hostel selector
+- ✅ Admin Login link tucked in footer only (no Sign In in nav)
+- ✅ Public /api/hostels/public endpoint (no auth required)
+- ✅ Frontend 100% tests passed (iteration 2)
