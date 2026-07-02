@@ -78,3 +78,12 @@ Build a production-ready Hostel Management Platform named Subhouz with ultra-pre
 - ✅ Admin Login link tucked in footer only (no Sign In in nav)
 - ✅ Public /api/hostels/public endpoint (no auth required)
 - ✅ Frontend 100% tests passed (iteration 2)
+
+## Iteration 3 — Premium Hostel Listing & Detail Pages (July 2, 2026)
+- ✅ /hostels — Premium listing page with dark header, filter (All/Boys/Girls/Co-ed), sort (Name/Rent/Rating/Availability), horizontal card layout
+- ✅ Each card: cover photo, type badge, star rating, name, address, starting rent, description, rooms/beds/occupancy stats, animated occupancy bar, facility tags with icons, View Details/Enquire/Call buttons
+- ✅ /hostels/:id — Detail page with hero cover, stats grid, description, facilities grid with icons, room cards with photos/pricing/availability, sticky enquiry form sidebar
+- ✅ Enhanced /api/hostels/public endpoint: starting_rent, available_beds, occupancy_rate, average_rating, review_count, facilities array
+- ✅ New /api/hostels/public/:id endpoint: full hostel with room list, per-room availability
+- ✅ Malformed ObjectId returns 404 (not 500) — parse_oid helper
+- ✅ Testing: Backend 22/22, Frontend 100%

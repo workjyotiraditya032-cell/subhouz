@@ -3,11 +3,18 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
 from bson import ObjectId
+from bson.errors import InvalidId
 from database import get_db
 from auth import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
+
+def parse_oid(val: str) -> ObjectId:
+    try:
+        return ObjectId(val)
+    except (InvalidId, Exception):
+        raise HTTPException(status_code=404, detail="Invalid or not found")
 router = APIRouter(prefix="/api/hostels", tags=["hostels"])
 
 class HostelCreate(BaseModel):
@@ -106,7 +113,7 @@ async def list_hostels_public():
 async def get_hostel_public(hostel_id: str):
     """Public endpoint — single hostel detail with rooms."""
     db = get_db()
-    hostel = await db.hostels.find_one({"_id": ObjectId(hostel_id)})
+    hostel = await db.hostels.find_one({"_id": parse_oid(hostel_id)})
     if not hostel:
         raise HTTPException(status_code=404, detail="Hostel not found")
     h_id = str(hostel["_id"])
@@ -188,7 +195,7 @@ async def list_hostels(request: Request):
     if user["role"] == "super_admin":
         hostels = await db.hostels.find().to_list(100)
     else:
-        hostels = await db.hostels.find({"_id": ObjectId(user.get("hostel_id"))}).to_list(1)
+        hostels = await db.hostels.find({"_id": parse_oid(user.get("hostel_id"))}).to_list(1)
     
     for h in hostels:
         h["_id"] = str(h["_id"])
@@ -207,7 +214,7 @@ async def get_hostel(hostel_id: str, request: Request):
     if user["role"] == "hostel_admin" and user.get("hostel_id") != hostel_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    hostel = await db.hostels.find_one({"_id": ObjectId(hostel_id)})
+    hostel = await db.hostels.find_one({"_id": parse_oid(hostel_id)})
     if not hostel:
         raise HTTPException(status_code=404, detail="Hostel not found")
     hostel["_id"] = str(hostel["_id"])
@@ -251,11 +258,11 @@ async def update_hostel(hostel_id: str, req: HostelUpdate, request: Request):
     
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc)
-    result = await db.hostels.update_one({"_id": ObjectId(hostel_id)}, {"$set": updates})
+    result = await db.hostels.update_one({"_id": parse_oid(hostel_id)}, {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Hostel not found")
     
-    hostel = await db.hostels.find_one({"_id": ObjectId(hostel_id)})
+    hostel = await db.hostels.find_one({"_id": parse_oid(hostel_id)})
     hostel["_id"] = str(hostel["_id"])
     hostel["id"] = hostel["_id"]
     return hostel
@@ -266,7 +273,7 @@ async def delete_hostel(hostel_id: str, request: Request):
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can delete hostels")
-    result = await db.hostels.delete_one({"_id": ObjectId(hostel_id)})
+    result = await db.hostels.delete_one({"_id": parse_oid(hostel_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Hostel not found")
     return {"message": "Hostel deleted"}
