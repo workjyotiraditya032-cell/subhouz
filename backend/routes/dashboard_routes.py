@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 from typing import Optional
 from datetime import datetime, timezone, timedelta
-from bson import ObjectId
-from database import get_db
+import asyncio
+from database import get_db, parse_uuid
 from auth import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -22,101 +22,188 @@ async def get_dashboard_stats(request: Request, hostel_id: Optional[str] = Query
         hostel_query["hostel_id"] = user.get("hostel_id")
     elif hostel_id:
         hostel_query["hostel_id"] = hostel_id
-    
+        
     # Core stats
     if user["role"] == "super_admin" and not hostel_id:
-        total_hostels = await db.hostels.count_documents({})
+        res_h_cnt = await db.table("hostels").select("id", count="exact").execute()
+        total_hostels = res_h_cnt.count or 0
     else:
-        total_hostels = 1
+        h_id_to_check = user.get("hostel_id") if user["role"] == "hostel_admin" else hostel_id
+        if h_id_to_check:
+            try:
+                res_h_cnt = await db.table("hostels").select("id", count="exact").eq("id", parse_uuid(h_id_to_check)).execute()
+                total_hostels = res_h_cnt.count or 0
+            except:
+                total_hostels = 0
+        else:
+            total_hostels = 0
+            
+    # Rooms count
+    q_rooms = db.table("rooms").select("id", count="exact")
+    if hostel_query.get("hostel_id"):
+        q_rooms = q_rooms.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_rooms = await q_rooms.execute()
+    total_rooms = res_rooms.count or 0
     
-    total_rooms = await db.rooms.count_documents(hostel_query)
-    total_beds = await db.beds.count_documents(hostel_query)
-    occupied_beds = await db.beds.count_documents({**hostel_query, "status": "occupied"})
+    # Beds count
+    q_beds = db.table("beds").select("id", count="exact")
+    if hostel_query.get("hostel_id"):
+        q_beds = q_beds.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_beds = await q_beds.execute()
+    total_beds = res_beds.count or 0
+    
+    # Occupied beds count
+    q_occ_beds = db.table("beds").select("id", count="exact").eq("status", "occupied")
+    if hostel_query.get("hostel_id"):
+        q_occ_beds = q_occ_beds.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_occ_beds = await q_occ_beds.execute()
+    occupied_beds = res_occ_beds.count or 0
+    
     available_beds = total_beds - occupied_beds
     occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0
     
-    total_residents = await db.residents.count_documents({**hostel_query, "status": "active"})
+    # Active residents
+    q_residents = db.table("residents").select("id", count="exact").eq("status", "active")
+    if hostel_query.get("hostel_id"):
+        q_residents = q_residents.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_residents = await q_residents.execute()
+    total_residents = res_residents.count or 0
     
     # Rent stats for current month
-    rent_query = {"month": current_month, "year": current_year}
-    if hostel_query:
-        rent_query.update(hostel_query)
+    q_paid_cnt = db.table("rent_payments").select("id", count="exact").eq("month", current_month).eq("year", current_year).eq("status", "paid")
+    if hostel_query.get("hostel_id"):
+        q_paid_cnt = q_paid_cnt.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_paid_cnt = await q_paid_cnt.execute()
+    paid_count = res_paid_cnt.count or 0
     
-    paid_count = await db.rent_payments.count_documents({**rent_query, "status": "paid"})
     pending_residents = total_residents - paid_count
     
     # Calculate revenue
-    paid_payments = await db.rent_payments.find({**rent_query, "status": "paid"}).to_list(1000)
+    q_paid_payments = db.table("rent_payments").select("*").eq("month", current_month).eq("year", current_year).eq("status", "paid")
+    if hostel_query.get("hostel_id"):
+        q_paid_payments = q_paid_payments.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_paid_payments = await q_paid_payments.execute()
+    paid_payments = res_paid_payments.data
     monthly_revenue = sum(p.get("amount", 0) for p in paid_payments)
     
     # Expected revenue
-    residents = await db.residents.find({**hostel_query, "status": "active"}).to_list(1000)
+    q_act_res = db.table("residents").select("*").eq("status", "active")
+    if hostel_query.get("hostel_id"):
+        q_act_res = q_act_res.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_act_res = await q_act_res.execute()
+    residents = res_act_res.data
     expected_revenue = sum(r.get("monthly_rent", 0) for r in residents)
     
     # Today's collections
     today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
-    today_payments = await db.rent_payments.find({
-        **rent_query, "status": "paid", "paid_on": {"$gte": today_start}
-    }).to_list(100)
+    q_today = db.table("rent_payments").select("*").eq("month", current_month).eq("year", current_year).eq("status", "paid").gte("paid_on", today_start.isoformat())
+    if hostel_query.get("hostel_id"):
+        q_today = q_today.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_today = await q_today.execute()
+    today_payments = res_today.data
     today_collection = sum(p.get("amount", 0) for p in today_payments)
     
     # Recent activity
-    activity_query = {}
+    q_act = db.table("activity_logs").select("*")
     if hostel_query.get("hostel_id"):
-        activity_query["hostel_id"] = hostel_query["hostel_id"]
-    recent_activities = await db.activity_logs.find(activity_query).sort("timestamp", -1).to_list(10)
-    for a in recent_activities:
-        a["_id"] = str(a["_id"])
-        a["id"] = a["_id"]
-        if a.get("timestamp") and hasattr(a["timestamp"], 'isoformat'):
-            a["timestamp"] = a["timestamp"].isoformat()
+        q_act = q_act.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    q_act = q_act.order("timestamp", desc=True).limit(10)
+    res_act = await q_act.execute()
+    recent_activities = res_act.data
     
-    # Monthly revenue chart (last 6 months)
+    for a in recent_activities:
+        a["_id"] = str(a["id"])
+        a["id"] = a["_id"]
+        if a.get("timestamp"):
+            a["timestamp"] = str(a["timestamp"])
+            
+    # Monthly revenue chart (last 6 months) - Run queries in parallel
     revenue_chart = []
+    chart_tasks = []
+    months_info = []
     for i in range(5, -1, -1):
         m = current_month - i
         y = current_year
         if m <= 0:
             m += 12
             y -= 1
-        month_payments = await db.rent_payments.find({"month": m, "year": y, "status": "paid", **hostel_query}).to_list(1000)
+            
+        q_m = db.table("rent_payments").select("*").eq("month", m).eq("year", y).eq("status", "paid")
+        if hostel_query.get("hostel_id"):
+            q_m = q_m.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+        chart_tasks.append(q_m.execute())
+        months_info.append((y, m))
+        
+    chart_results = await asyncio.gather(*chart_tasks)
+    for idx, res_m in enumerate(chart_results):
+        y, m = months_info[idx]
+        month_payments = res_m.data
         revenue_chart.append({
             "month": f"{y}-{m:02d}",
             "month_name": datetime(y, m, 1).strftime("%b"),
             "revenue": sum(p.get("amount", 0) for p in month_payments),
             "count": len(month_payments)
         })
-    
+        
     # Enquiries
-    enquiry_query = {}
+    q_enq = db.table("enquiries").select("id", count="exact")
     if hostel_query.get("hostel_id"):
-        enquiry_query["hostel_id"] = hostel_query["hostel_id"]
-    total_enquiries = await db.enquiries.count_documents(enquiry_query)
-    new_enquiries = await db.enquiries.count_documents({**enquiry_query, "status": "new"})
+        q_enq = q_enq.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_enq = await q_enq.execute()
+    total_enquiries = res_enq.count or 0
     
-    # Per-hostel breakdown for super admin
+    q_new_enq = db.table("enquiries").select("id", count="exact").eq("status", "new")
+    if hostel_query.get("hostel_id"):
+        q_new_enq = q_new_enq.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+    res_new_enq = await q_new_enq.execute()
+    new_enquiries = res_new_enq.count or 0
+    
+    # Per-hostel breakdown for super admin - Run queries in parallel
     hostel_breakdown = []
     if user["role"] == "super_admin" and not hostel_id:
-        hostels = await db.hostels.find().to_list(100)
+        res_hostels = await db.table("hostels").select("*").execute()
+        hostels = res_hostels.data
+        
+        breakdown_tasks = []
         for h in hostels:
-            h_id = str(h["_id"])
-            h_beds = await db.beds.count_documents({"hostel_id": h_id})
-            h_occ = await db.beds.count_documents({"hostel_id": h_id, "status": "occupied"})
-            h_residents = await db.residents.count_documents({"hostel_id": h_id, "status": "active"})
-            h_paid = await db.rent_payments.find({"hostel_id": h_id, "month": current_month, "year": current_year, "status": "paid"}).to_list(1000)
-            h_revenue = sum(p.get("amount", 0) for p in h_paid)
-            hostel_breakdown.append({
-                "id": h_id,
-                "name": h.get("name"),
-                "code": h.get("code"),
-                "total_beds": h_beds,
-                "occupied_beds": h_occ,
-                "occupancy_rate": round((h_occ / h_beds * 100), 1) if h_beds > 0 else 0,
-                "total_residents": h_residents,
-                "monthly_revenue": h_revenue,
-                "pending_rent": h_residents - len(h_paid)
-            })
-    
+            h_uuid = parse_uuid(str(h["id"]))
+            # 1. Total beds
+            breakdown_tasks.append(db.table("beds").select("id", count="exact").eq("hostel_id", h_uuid).execute())
+            # 2. Occupied beds
+            breakdown_tasks.append(db.table("beds").select("id", count="exact").eq("hostel_id", h_uuid).eq("status", "occupied").execute())
+            # 3. Active residents
+            breakdown_tasks.append(db.table("residents").select("id", count="exact").eq("hostel_id", h_uuid).eq("status", "active").execute())
+            # 4. Paid rent payments
+            breakdown_tasks.append(db.table("rent_payments").select("*").eq("hostel_id", h_uuid).eq("month", current_month).eq("year", current_year).eq("status", "paid").execute())
+            
+        if breakdown_tasks:
+            breakdown_results = await asyncio.gather(*breakdown_tasks)
+            for idx, h in enumerate(hostels):
+                h_id = str(h["id"])
+                
+                res_hb = breakdown_results[idx * 4]
+                res_ho = breakdown_results[idx * 4 + 1]
+                res_hr = breakdown_results[idx * 4 + 2]
+                res_hp = breakdown_results[idx * 4 + 3]
+                
+                h_beds = res_hb.count or 0
+                h_occ = res_ho.count or 0
+                h_residents = res_hr.count or 0
+                h_paid = res_hp.data
+                h_revenue = sum(p.get("amount", 0) for p in h_paid)
+                
+                hostel_breakdown.append({
+                    "id": h_id,
+                    "name": h.get("name"),
+                    "code": h.get("code"),
+                    "total_beds": h_beds,
+                    "occupied_beds": h_occ,
+                    "occupancy_rate": round((h_occ / h_beds * 100), 1) if h_beds > 0 else 0,
+                    "total_residents": h_residents,
+                    "monthly_revenue": h_revenue,
+                    "pending_rent": h_residents - len(h_paid)
+                })
+            
     return {
         "total_hostels": total_hostels,
         "total_rooms": total_rooms,
@@ -144,16 +231,20 @@ async def get_dashboard_stats(request: Request, hostel_id: Optional[str] = Query
 async def get_activity_logs(request: Request, hostel_id: Optional[str] = Query(None), limit: int = Query(50)):
     db = get_db()
     user = await get_current_user(request, db)
-    query = {}
-    if user["role"] == "hostel_admin":
-        query["hostel_id"] = user.get("hostel_id")
-    elif hostel_id:
-        query["hostel_id"] = hostel_id
     
-    logs = await db.activity_logs.find(query).sort("timestamp", -1).to_list(limit)
+    q = db.table("activity_logs").select("*")
+    if user["role"] == "hostel_admin":
+        q = q.eq("hostel_id", parse_uuid(user.get("hostel_id")))
+    elif hostel_id:
+        q = q.eq("hostel_id", parse_uuid(hostel_id))
+        
+    q = q.order("timestamp", desc=True).limit(limit)
+    res_logs = await q.execute()
+    logs = res_logs.data
+    
     for l in logs:
-        l["_id"] = str(l["_id"])
+        l["_id"] = str(l["id"])
         l["id"] = l["_id"]
-        if l.get("timestamp") and hasattr(l["timestamp"], 'isoformat'):
-            l["timestamp"] = l["timestamp"].isoformat()
+        if l.get("timestamp"):
+            l["timestamp"] = str(l["timestamp"])
     return logs

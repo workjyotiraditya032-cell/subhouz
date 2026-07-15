@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import { MapPin, Phone, Mail, Star, ArrowLeft, ArrowRight, Wifi, Shield, Camera, Car, Dumbbell, UtensilsCrossed, Waves, Wind, Droplets, Sun, Building2, Users, DoorOpen, Check, Menu, X, Send } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent } from '../components/ui/card';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { useWebsiteImage, useWebsiteImages } from '../hooks/useWebsiteImages';
 
 const HOSTEL_COVERS = {
   'Jogmaya Hostel': 'https://images.unsplash.com/photo-1612913959689-a83136ac4e7c?auto=format&fit=crop&w=1200&q=80',
@@ -43,15 +44,28 @@ export default function HostelDetailPage() {
   const navigate = useNavigate();
   const [hostel, setHostel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [enquiry, setEnquiry] = useState({ name: '', phone: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
 
+  // Dynamic Image Fetching using custom hooks
+  const logo = useWebsiteImage('website_logo');
+  const footerLogo = useWebsiteImage('footer_logo');
+  const defaultProperty = useWebsiteImage('default_property');
+  const defaultRoom = useWebsiteImage('default_room');
+  const { images: hostelCovers } = useWebsiteImages('hostel_cover');
+  const { images: roomCovers } = useWebsiteImages('room_cover');
+
   useEffect(() => {
+    setError(null);
     api.get(`/hostels/public/${hostelId}`)
       .then(res => setHostel(res.data))
-      .catch(() => navigate('/hostels'))
+      .catch(err => {
+        console.error(err);
+        setError('Could not load hostel details. Please verify the URL or try again later.');
+      })
       .finally(() => setLoading(false));
-  }, [hostelId, navigate]);
+  }, [hostelId]);
 
   const submitEnquiry = async () => {
     if (!enquiry.name || !enquiry.phone) { toast.error('Name and phone are required'); return; }
@@ -64,19 +78,37 @@ export default function HostelDetailPage() {
     finally { setSending(false); }
   };
 
+  const finalCover = useMemo(() => {
+    if (!hostel) return '';
+    const customCover = hostelCovers.find(c => c.hostel_id === hostel.id)?.image;
+    return customCover || defaultProperty.image || HOSTEL_COVERS[hostel.name] || ROOM_IMAGES[0];
+  }, [hostel, hostelCovers, defaultProperty.image]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#2D5F3F] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-t-2 border-b-2 border-[#2D5F3F] rounded-full animate-spin" />
       </div>
     );
   }
 
-  if (!hostel) return null;
+  if (error || !hostel) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-red-50 text-red-700 px-6 py-4 rounded-2xl border border-red-100 max-w-md shadow-sm">
+          <h3 className="text-lg font-bold mb-2">Hostel Details Unavailable</h3>
+          <p className="text-sm text-red-600/90 mb-4">{error || 'We could not find the hostel details.'}</p>
+          <Button onClick={() => navigate('/hostels')} className="bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white rounded-full px-5 h-9 text-xs font-semibold">
+            Back to All Stays
+          </Button>
+        </div>
+      </div>
+    );
+  }
   const h = hostel;
 
   const availableRooms = (h.rooms || []).filter(r => r.available_beds > 0);
-  const typeLabel = h.hostel_type === 'boys' ? 'Boys Hostel' : h.hostel_type === 'girls' ? 'Girls PG' : 'Co-ed Residency';
+  const typeLabel = h.hostel_type === 'boys' ? 'Boys Stay' : h.hostel_type === 'girls' ? 'Girls Stay' : 'Co-ed Stay';
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#1C1917]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -84,13 +116,23 @@ export default function HostelDetailPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#FAF7F2]/90 backdrop-blur-md border-b border-[#E8E0D8]/60">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#2D5F3F] flex items-center justify-center">
-              <span className="text-white font-bold text-sm" style={{ fontFamily: "'Fraunces', serif" }}>S</span>
-            </div>
+            {logo.loading ? (
+              <div className="w-8 h-8 rounded-lg bg-slate-200 animate-pulse" />
+            ) : logo.image ? (
+              <img
+                src={logo.image}
+                alt={logo.alt_text || "Subhouz Logo"}
+                className="w-8 h-8 object-contain"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-[#2D5F3F] flex items-center justify-center">
+                <span className="text-white font-bold text-sm" style={{ fontFamily: "'Fraunces', serif" }}>S</span>
+              </div>
+            )}
             <span className="text-lg font-semibold tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link to="/hostels" className="text-[13px] font-medium text-[#6B5E54] hover:text-[#1C1917]">All Hostels</Link>
+            <Link to="/hostels" className="text-[13px] font-medium text-[#6B5E54] hover:text-[#1C1917]">All Stays</Link>
             <Button onClick={() => document.getElementById('enquiry')?.scrollIntoView({ behavior: 'smooth' })} className="bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white rounded-full px-5 h-9 text-[13px] font-semibold" data-testid="detail-enquiry-btn">
               Send an Enquiry
             </Button>
@@ -101,14 +143,14 @@ export default function HostelDetailPage() {
       {/* Hero cover */}
       <section className="relative pt-16 h-[50vh] min-h-[360px] overflow-hidden" data-testid="detail-hero">
         <img
-          src={HOSTEL_COVERS[h.name] || ROOM_IMAGES[0]}
+          src={finalCover}
           alt={h.name}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1C1917]/70 via-[#1C1917]/20 to-transparent" />
         <div className="relative z-10 h-full flex flex-col justify-end max-w-7xl mx-auto px-6 pb-8">
           <button onClick={() => navigate('/hostels')} className="flex items-center gap-1.5 text-white/70 text-sm mb-4 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to all hostels
+            <ArrowLeft className="w-4 h-4" /> Back to all stays
           </button>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -194,35 +236,39 @@ export default function HostelDetailPage() {
                 <p className="text-sm text-[#8C7E72]">Room details coming soon.</p>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {(h.rooms || []).map((r, ri) => (
-                    <Card key={r.id} className={`border-[#E8E0D8] overflow-hidden ${r.available_beds > 0 ? '' : 'opacity-60'}`} data-testid={`room-detail-${r.id}`}>
-                      <div className="h-36 overflow-hidden relative">
-                        <img src={ROOM_IMAGES[ri % ROOM_IMAGES.length]} alt={`Room ${r.room_number}`} className="w-full h-full object-cover" loading="lazy" />
-                        <div className="absolute top-2 right-2 flex gap-1.5">
-                          {r.ac_type === 'ac' && <span className="bg-blue-500/80 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full backdrop-blur-sm">AC</span>}
-                          {r.available_beds > 0 ? (
-                            <span className="bg-emerald-500/80 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full backdrop-blur-sm">{r.available_beds} bed{r.available_beds > 1 ? 's' : ''} free</span>
-                          ) : (
-                            <span className="bg-red-500/80 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full backdrop-blur-sm">Full</span>
-                          )}
-                        </div>
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h4 className="font-semibold text-[#1C1917]" style={{ fontFamily: "'Fraunces', serif" }}>Room {r.room_number}</h4>
-                            <p className="text-xs text-[#8C7E72]">Floor {r.floor_number} &middot; {r.capacity} beds &middot; {r.room_type}</p>
+                  {(h.rooms || []).map((r, ri) => {
+                    const customRoomCover = roomCovers.find(c => c.room_id === r.id)?.image;
+                    const finalRoomCover = customRoomCover || defaultRoom.image || ROOM_IMAGES[ri % ROOM_IMAGES.length];
+                    return (
+                      <Card key={r.id} className={`border-[#E8E0D8] overflow-hidden ${r.available_beds > 0 ? '' : 'opacity-60'}`} data-testid={`room-detail-${r.id}`}>
+                        <div className="h-36 overflow-hidden relative">
+                          <img src={finalRoomCover} alt={`Room ${r.room_number}`} className="w-full h-full object-cover" loading="lazy" />
+                          <div className="absolute top-2 right-2 flex gap-1.5">
+                            {r.ac_type === 'ac' && <span className="bg-blue-500/80 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full backdrop-blur-sm">AC</span>}
+                            {r.available_beds > 0 ? (
+                              <span className="bg-emerald-500/80 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full backdrop-blur-sm">{r.available_beds} bed{r.available_beds > 1 ? 's' : ''} free</span>
+                            ) : (
+                              <span className="bg-red-500/80 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full backdrop-blur-sm">Full</span>
+                            )}
                           </div>
-                          <p className="text-lg font-bold text-[#2D5F3F]" style={{ fontFamily: "'Fraunces', serif" }}>₹{r.rent?.toLocaleString()}</p>
                         </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {r.has_bathroom && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Bathroom</span>}
-                          {r.has_balcony && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Balcony</span>}
-                          {(r.amenities || []).map((a, ai) => <span key={ai} className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">{a}</span>)}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h4 className="font-semibold text-[#1C1917]" style={{ fontFamily: "'Fraunces', serif" }}>Room {r.room_number}</h4>
+                              <p className="text-xs text-[#8C7E72]">Floor {r.floor_number} &middot; {r.capacity} beds &middot; {r.room_type}</p>
+                            </div>
+                            <p className="text-lg font-bold text-[#2D5F3F]" style={{ fontFamily: "'Fraunces', serif" }}>₹{r.rent?.toLocaleString()}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {r.has_bathroom && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Bathroom</span>}
+                            {r.has_balcony && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Balcony</span>}
+                            {(r.amenities || []).map((a, ai) => <span key={ai} className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">{a}</span>)}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </FadeIn>
@@ -232,7 +278,7 @@ export default function HostelDetailPage() {
           <div className="lg:sticky lg:top-24 h-fit">
             <FadeIn delay={0.2}>
               <div id="enquiry" className="bg-white rounded-2xl border border-[#E8E0D8] p-6 shadow-sm" data-testid="detail-enquiry-form">
-                <h3 className="font-semibold text-lg mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Interested in this hostel?</h3>
+                <h3 className="font-semibold text-lg mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Interested in this property?</h3>
                 <p className="text-xs text-[#8C7E72] mb-5">Send us an enquiry and we'll respond within 24 hours.</p>
                 <div className="space-y-3">
                   <div>
@@ -271,7 +317,19 @@ export default function HostelDetailPage() {
       <footer className="bg-[#1C1917] border-t border-white/5 py-10">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#2D5F3F] flex items-center justify-center"><span className="text-white font-bold text-[10px]" style={{ fontFamily: "'Fraunces', serif" }}>S</span></div>
+            {footerLogo.loading ? (
+              <div className="w-6 h-6 rounded-md bg-white/10 animate-pulse" />
+            ) : footerLogo.image ? (
+              <img
+                src={footerLogo.image}
+                alt={footerLogo.alt_text || "Subhouz Footer Logo"}
+                className="w-6 h-6 object-contain"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-md bg-[#2D5F3F] flex items-center justify-center">
+                <span className="text-white font-bold text-[10px]" style={{ fontFamily: "'Fraunces', serif" }}>S</span>
+              </div>
+            )}
             <span className="text-white text-sm font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
           </div>
           <div className="flex items-center gap-6">

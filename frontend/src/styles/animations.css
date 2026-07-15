@@ -1,0 +1,37 @@
+.fade-up{
+
+opacity:0;
+
+transform:translateY(60px);
+
+}
+
+.hover-lift{
+
+transition:.35s;
+
+}
+
+.hover-lift:hover{
+
+transform:translateY(-8px);
+
+}
+
+.zoom{
+
+overflow:hidden;
+
+}
+
+.zoom img{
+
+transition:.5s;
+
+}
+
+.zoom:hover img{
+
+transform:scale(1.08);
+
+}

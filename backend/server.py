@@ -8,20 +8,30 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
-from database import get_db, get_client
+from database import get_db, get_client, init_db
 from auth import hash_password, verify_password
 from datetime import datetime, timezone
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger(__name__) 
 app = FastAPI(title="Subhouz API", description="Smart Hostel Management Platform", version="1.0.0")
 
 # CORS
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+frontend_url = os.environ.get("FRONTEND_URL")
+if frontend_url:
+    origins.append(frontend_url.rstrip("/"))
+cors_origins_env = os.environ.get("CORS_ORIGINS")
+if cors_origins_env and cors_origins_env != "*":
+    for o in cors_origins_env.split(","):
+        origins.append(o.strip().rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get("FRONTEND_URL", "http://localhost:3000")],
+    allow_origins=list(set(origins)),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,6 +39,7 @@ app.add_middleware(
 
 # Import and include routers
 from routes.auth_routes import router as auth_router
+from routes.search_routes import router as search_router
 from routes.hostel_routes import router as hostel_router
 from routes.room_routes import router as room_router
 from routes.resident_routes import router as resident_router
@@ -51,6 +62,7 @@ app.include_router(enquiry_router)
 app.include_router(admin_router)
 app.include_router(electricity_router)
 app.include_router(website_images_router)
+app.include_router(search_router)
 
 @app.get("/api")
 async def root():
@@ -62,62 +74,47 @@ async def health():
 
 @app.on_event("startup")
 async def startup_event():
+    await init_db()
     db = get_db()
-    
-    # Create indexes
-    await db.users.create_index("email", unique=True)
-    await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
-    await db.login_attempts.create_index("identifier")
-    await db.residents.create_index([("hostel_id", 1), ("status", 1)])
-    await db.rooms.create_index("hostel_id")
-    await db.beds.create_index([("hostel_id", 1), ("room_id", 1)])
-    await db.rent_payments.create_index([("resident_id", 1), ("month", 1), ("year", 1)])
-    await db.rent_payments.create_index([("hostel_id", 1), ("month", 1), ("year", 1)])
-    await db.activity_logs.create_index([("timestamp", -1)])
+    from services.search_db import init_search_db
+    await init_search_db(db)
     
     # Seed super admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@subhouz.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "SubhouzAdmin@2026")
-    existing = await db.users.find_one({"email": admin_email})
+    
+    res = await db.table("users").select("*").eq("email", admin_email).execute()
+    existing = res.data[0] if res.data else None
+    
     if existing is None:
         hashed = hash_password(admin_password)
-        await db.users.insert_one({
+        await db.table("users").insert({
             "email": admin_email,
             "password_hash": hashed,
             "name": "Super Admin",
             "role": "super_admin",
             "hostel_id": None,
-            "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)
-        })
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).execute()
         logger.info(f"Super Admin seeded: {admin_email}")
     elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one(
-            {"email": admin_email},
-            {"$set": {"password_hash": hash_password(admin_password)}}
-        )
+        await db.table("users").update({
+            "password_hash": hash_password(admin_password),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("email", admin_email).execute()
         logger.info(f"Super Admin password updated: {admin_email}")
-    
-    # Seed initial data
-    from seed import seed_database
-    seeded = await seed_database(db)
-    if seeded:
-        logger.info("Database seeded with 3 hostels and sample data")
     
     # Write test credentials
     creds_path = Path("/app/memory/test_credentials.md")
-    creds_path.parent.mkdir(parents=True, exist_ok=True)
-    creds_path.write_text(f"""# Test Credentials
+    try:
+        creds_path.parent.mkdir(parents=True, exist_ok=True)
+        creds_path.write_text(f"""# Test Credentials
 
 ## Super Admin
 - Email: {admin_email}
 - Password: {admin_password}
 - Role: super_admin
-
-## Hostel Admins
-- Jogmaya Admin: jogmaya.admin@subhouz.com / hostel@123
-- Homely Havens Admin: homely.admin@subhouz.com / hostel@123
-- GS Residency Admin: gs.admin@subhouz.com / hostel@123
 
 ## API Endpoints
 - POST /api/auth/login
@@ -132,10 +129,7 @@ async def startup_event():
 - GET /api/dashboard/stats
 - GET /api/automation/workflows
 """)
-    logger.info("Test credentials written to /app/memory/test_credentials.md")
+        logger.info("Test credentials written to /app/memory/test_credentials.md")
+    except Exception as e:
+        logger.warning(f"Could not write credentials to {creds_path}: {e}")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    client = get_client()
-    if client:
-        client.close()

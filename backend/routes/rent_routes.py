@@ -2,8 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
-from bson import ObjectId
-from database import get_db
+from database import get_db, parse_uuid
 from auth import get_current_user
 import logging
 
@@ -13,6 +12,8 @@ router = APIRouter(prefix="/api/rent", tags=["rent"])
 class MarkPaidRequest(BaseModel):
     payment_mode: Optional[str] = "cash"
     notes: Optional[str] = None
+    transaction_id: Optional[str] = None
+    balance: Optional[float] = 0.0
 
 @router.get("/tracker")
 async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(None), month: Optional[int] = Query(None), year: Optional[int] = Query(None)):
@@ -25,26 +26,32 @@ async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(No
     target_year = year or now.year
     
     # Get residents
-    resident_query = {"status": "active"}
+    q = db.table("residents").select("*").eq("status", "active")
     if user["role"] == "hostel_admin":
-        resident_query["hostel_id"] = user.get("hostel_id")
+        q = q.eq("hostel_id", parse_uuid(user.get("hostel_id")))
     elif hostel_id:
-        resident_query["hostel_id"] = hostel_id
-    
-    residents = await db.residents.find(resident_query).sort("name", 1).to_list(1000)
+        q = q.eq("hostel_id", parse_uuid(hostel_id))
+        
+    q = q.order("name", desc=False)
+    res_res = await q.execute()
+    residents = res_res.data
     
     result = []
     for r in residents:
-        r_id = str(r["_id"])
+        r_uuid = parse_uuid(r["id"])
+        r_id = str(r["id"])
+        
         # Check for existing payment record
-        payment = await db.rent_payments.find_one({
-            "resident_id": r_id,
-            "month": target_month,
-            "year": target_year
-        })
+        res_p = await db.table("rent_payments").select("*").eq("resident_id", r_uuid).eq("month", target_month).eq("year", target_year).execute()
+        payment = res_p.data[0] if res_p.data else None
         
         # Get hostel due date
-        hostel = await db.hostels.find_one({"_id": ObjectId(r.get("hostel_id", ""))}) if r.get("hostel_id") else None
+        hostel = None
+        if r.get("hostel_id"):
+            h_uuid = parse_uuid(r["hostel_id"])
+            res_h = await db.table("hostels").select("*").eq("id", h_uuid).execute()
+            hostel = res_h.data[0] if res_h.data else None
+            
         due_date = r.get("due_date_override") or (hostel.get("monthly_due_date", 5) if hostel else 5)
         
         status = "pending"
@@ -52,7 +59,7 @@ async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(No
             status = payment.get("status", "pending")
         elif now.day > due_date and target_month == now.month and target_year == now.year:
             status = "overdue"
-        
+            
         entry = {
             "resident_id": r_id,
             "name": r.get("name", ""),
@@ -66,15 +73,15 @@ async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(No
             "month": target_month,
             "year": target_year,
             "status": status,
-            "payment_id": str(payment["_id"]) if payment else None,
-            "paid_on": payment.get("paid_on").isoformat() if payment and payment.get("paid_on") and hasattr(payment["paid_on"], 'isoformat') else payment.get("paid_on") if payment else None,
+            "payment_id": str(payment["id"]) if payment else None,
+            "paid_on": str(payment.get("paid_on")) if payment and payment.get("paid_on") else None,
             "payment_mode": payment.get("payment_mode") if payment else None,
             "receipt_number": payment.get("receipt_number") if payment else None,
-            "challan_sent_at": payment.get("challan_sent_at").isoformat() if payment and payment.get("challan_sent_at") and hasattr(payment["challan_sent_at"], 'isoformat') else None,
-            "reminder_sent_at": payment.get("reminder_sent_at").isoformat() if payment and payment.get("reminder_sent_at") and hasattr(payment["reminder_sent_at"], 'isoformat') else None,
+            "challan_sent_at": str(payment.get("challan_sent_at")) if payment and payment.get("challan_sent_at") else None,
+            "reminder_sent_at": str(payment.get("reminder_sent_at")) if payment and payment.get("reminder_sent_at") else None,
         }
         result.append(entry)
-    
+        
     return {
         "month": target_month,
         "year": target_year,
@@ -99,67 +106,87 @@ async def mark_rent_paid(resident_id: str, request: Request, req: MarkPaidReques
     target_month = month or now.month
     target_year = year or now.year
     
-    resident = await db.residents.find_one({"_id": ObjectId(resident_id)})
+    res_uuid = parse_uuid(resident_id)
+    res_resident = await db.table("residents").select("*").eq("id", res_uuid).execute()
+    resident = res_resident.data[0] if res_resident.data else None
     if not resident:
         raise HTTPException(status_code=404, detail="Resident not found")
-    
+        
     if user["role"] == "hostel_admin" and user.get("hostel_id") != resident.get("hostel_id"):
         raise HTTPException(status_code=403, detail="Access denied")
-    
+        
     # Generate receipt number
-    hostel = await db.hostels.find_one({"_id": ObjectId(resident.get("hostel_id", ""))}) if resident.get("hostel_id") else None
+    hostel = None
+    if resident.get("hostel_id"):
+        res_h = await db.table("hostels").select("*").eq("id", parse_uuid(resident["hostel_id"])).execute()
+        hostel = res_h.data[0] if res_h.data else None
+        
     hostel_code = hostel.get("code", "SH") if hostel else "SH"
-    count = await db.rent_payments.count_documents({"hostel_id": resident.get("hostel_id"), "year": target_year, "month": target_month, "status": "paid"})
+    
+    res_cnt = await db.table("rent_payments").select("id", count="exact").eq("hostel_id", parse_uuid(resident["hostel_id"])).eq("year", target_year).eq("month", target_month).eq("status", "paid").execute()
+    count = res_cnt.count or 0
     receipt_number = f"SH-{hostel_code}-{target_year}{target_month:02d}-{count + 1:04d}"
     
     # Check if payment already exists
-    existing = await db.rent_payments.find_one({
-        "resident_id": resident_id,
-        "month": target_month,
-        "year": target_year
-    })
+    res_existing = await db.table("rent_payments").select("*").eq("resident_id", res_uuid).eq("month", target_month).eq("year", target_year).execute()
+    existing = res_existing.data[0] if res_existing.data else None
     
     payment_data = {
         "status": "paid",
-        "paid_on": now,
+        "paid_on": now.isoformat(),
         "payment_mode": req.payment_mode,
         "receipt_number": receipt_number,
         "notes": req.notes,
-        "marked_by": user.get("_id"),
-        "updated_at": now
+        "transaction_id": req.transaction_id,
+        "balance": req.balance or 0.0,
+        "marked_by": parse_uuid(user["id"]),
+        "updated_at": now.isoformat()
     }
     
     if existing:
-        await db.rent_payments.update_one({"_id": existing["_id"]}, {"$set": payment_data})
-        payment_id = str(existing["_id"])
+        await db.table("rent_payments").update(payment_data).eq("id", parse_uuid(existing["id"])).execute()
+        payment_id = str(existing["id"])
     else:
         payment_data.update({
-            "resident_id": resident_id,
-            "hostel_id": resident.get("hostel_id"),
+            "resident_id": res_uuid,
+            "hostel_id": parse_uuid(resident.get("hostel_id")),
             "resident_name": resident.get("name"),
             "room_number": resident.get("room_number"),
             "bed_number": resident.get("bed_number"),
             "month": target_month,
             "year": target_year,
             "amount": resident.get("monthly_rent", 0),
-            "created_at": now
+            "created_at": now.isoformat()
         })
-        result = await db.rent_payments.insert_one(payment_data)
-        payment_id = str(result.inserted_id)
-    
+        res_insert = await db.table("rent_payments").insert(payment_data).execute()
+        payment_id = str(res_insert.data[0]["id"])
+        
     # Log activity
-    await db.activity_logs.insert_one({
-        "user_id": user["_id"], "user_name": user.get("name", ""),
-        "hostel_id": resident.get("hostel_id"),
+    await db.table("activity_logs").insert({
+        "user_id": str(user["id"]),
+        "user_name": user.get("name", ""),
+        "hostel_id": parse_uuid(resident.get("hostel_id")),
         "action": "rent_marked_paid",
-        "entity_type": "rent_payment", "entity_id": payment_id,
+        "entity_type": "rent_payment",
+        "entity_id": payment_id,
         "details": f"Marked rent paid for {resident.get('name', '')} - {target_month}/{target_year} - Receipt: {receipt_number}",
         "metadata": {"resident_name": resident.get("name"), "amount": resident.get("monthly_rent", 0), "receipt_number": receipt_number},
-        "timestamp": now
-    })
+        "timestamp": now.isoformat()
+    }).execute()
     
-    # Trigger automation: send WhatsApp challan
-    await _trigger_challan_automation(db, resident, payment_data, hostel)
+    # Trigger Payment Storage/Challan automation via EventBus
+    from services.event_bus import EventBus, PAYMENT_RECORDED
+    payment_data_for_storage = {
+        **payment_data,
+        "id": payment_id,
+        "resident_id": resident["id"],
+        "resident_name": resident["name"],
+        "hostel_id": resident["hostel_id"],
+        "month": target_month,
+        "year": target_year,
+        "amount": resident.get("monthly_rent", 0)
+    }
+    await EventBus.emit(PAYMENT_RECORDED, payment_data_for_storage)
     
     return {
         "message": "Rent marked as paid",
@@ -181,94 +208,79 @@ async def mark_rent_unpaid(resident_id: str, request: Request, month: Optional[i
     target_month = month or now.month
     target_year = year or now.year
     
-    result = await db.rent_payments.update_one(
-        {"resident_id": resident_id, "month": target_month, "year": target_year},
-        {"$set": {"status": "pending", "paid_on": None, "receipt_number": None, "updated_at": now}}
-    )
+    res_uuid = parse_uuid(resident_id)
+    await db.table("rent_payments").update({
+        "status": "pending",
+        "paid_on": None,
+        "receipt_number": None,
+        "updated_at": now.isoformat()
+    }).eq("resident_id", res_uuid).eq("month", target_month).eq("year", target_year).execute()
+    
     return {"message": "Rent marked as unpaid"}
 
 @router.get("/payments")
 async def list_payments(request: Request, hostel_id: Optional[str] = Query(None), month: Optional[int] = Query(None), year: Optional[int] = Query(None)):
     db = get_db()
     user = await get_current_user(request, db)
-    query = {}
-    if user["role"] == "hostel_admin":
-        query["hostel_id"] = user.get("hostel_id")
-    elif hostel_id:
-        query["hostel_id"] = hostel_id
-    if month:
-        query["month"] = month
-    if year:
-        query["year"] = year
     
-    payments = await db.rent_payments.find(query).sort([("year", -1), ("month", -1), ("paid_on", -1)]).to_list(1000)
+    q = db.table("rent_payments").select("*")
+    if user["role"] == "hostel_admin":
+        q = q.eq("hostel_id", parse_uuid(user.get("hostel_id")))
+    elif hostel_id:
+        q = q.eq("hostel_id", parse_uuid(hostel_id))
+    if month:
+        q = q.eq("month", month)
+    if year:
+        q = q.eq("year", year)
+        
+    q = q.order("year", desc=True).order("month", desc=True).order("paid_on", desc=True)
+    res_payments = await q.execute()
+    payments = res_payments.data
+    
     for p in payments:
-        p["_id"] = str(p["_id"])
+        p["_id"] = str(p["id"])
         p["id"] = p["_id"]
-        if p.get("paid_on") and hasattr(p["paid_on"], 'isoformat'):
-            p["paid_on"] = p["paid_on"].isoformat()
-        if p.get("created_at") and hasattr(p["created_at"], 'isoformat'):
-            p["created_at"] = p["created_at"].isoformat()
+        if p.get("paid_on"):
+            p["paid_on"] = str(p["paid_on"])
+        if p.get("created_at"):
+            p["created_at"] = str(p["created_at"])
     return payments
 
 @router.get("/receipt/{payment_id}")
 async def get_receipt(payment_id: str, request: Request):
     db = get_db()
-    payment = await db.rent_payments.find_one({"_id": ObjectId(payment_id)})
+    p_uuid = parse_uuid(payment_id)
+    
+    res_pay = await db.table("rent_payments").select("*").eq("id", p_uuid).execute()
+    payment = res_pay.data[0] if res_pay.data else None
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
-    payment["_id"] = str(payment["_id"])
+        
+    payment["_id"] = str(payment["id"])
     payment["id"] = payment["_id"]
     
     # Get hostel info
     hostel = None
     if payment.get("hostel_id"):
-        hostel = await db.hostels.find_one({"_id": ObjectId(payment["hostel_id"])})
+        res_h = await db.table("hostels").select("*").eq("id", parse_uuid(payment["hostel_id"])).execute()
+        hostel = res_h.data[0] if res_h.data else None
         if hostel:
-            hostel["_id"] = str(hostel["_id"])
-    
+            hostel["_id"] = str(hostel["id"])
+            
     resident = None
     if payment.get("resident_id"):
-        resident = await db.residents.find_one({"_id": ObjectId(payment["resident_id"])})
+        res_res = await db.table("residents").select("*").eq("id", parse_uuid(payment["resident_id"])).execute()
+        resident = res_res.data[0] if res_res.data else None
         if resident:
-            resident["_id"] = str(resident["_id"])
-    
-    if payment.get("paid_on") and hasattr(payment["paid_on"], 'isoformat'):
-        payment["paid_on"] = payment["paid_on"].isoformat()
-    
+            resident["_id"] = str(resident["id"])
+            
+    if payment.get("paid_on"):
+        payment["paid_on"] = str(payment["paid_on"])
+        
     return {
         "payment": payment,
         "hostel": hostel,
         "resident": resident
     }
 
-async def _trigger_challan_automation(db, resident, payment_data, hostel):
-    """Trigger WhatsApp challan automation after payment."""
-    # Check if automation is enabled
-    workflow = await db.automation_workflows.find_one({"trigger_type": "rent_paid", "enabled": True})
-    if not workflow:
-        logger.info("No rent_paid automation workflow enabled")
-        return
-    
-    # Log the automation trigger
-    await db.automation_logs.insert_one({
-        "workflow_id": str(workflow["_id"]) if workflow else None,
-        "workflow_name": "Rent Paid - Send Challan",
-        "trigger": "rent_paid",
-        "status": "triggered",
-        "resident_id": str(resident["_id"]),
-        "resident_name": resident.get("name"),
-        "hostel_id": resident.get("hostel_id"),
-        "details": f"Challan triggered for {resident.get('name')} - Receipt: {payment_data.get('receipt_number')}",
-        "whatsapp_number": resident.get("whatsapp", resident.get("phone")),
-        "message_template": "rent_challan",
-        "timestamp": datetime.now(timezone.utc)
-    })
-    
-    # Update payment with challan sent timestamp
-    await db.rent_payments.update_one(
-        {"resident_id": str(resident["_id"]), "month": payment_data.get("month"), "year": payment_data.get("year")},
-        {"$set": {"challan_sent_at": datetime.now(timezone.utc)}}
-    )
-    
-    logger.info(f"WhatsApp challan automation triggered for {resident.get('name')} - {resident.get('whatsapp', resident.get('phone'))}")
+

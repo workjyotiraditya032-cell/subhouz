@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Zap, Plus, Check, Search, ChevronLeft, ChevronRight, FileText, Calculator } from 'lucide-react';
@@ -30,7 +30,7 @@ export default function ElectricityPage() {
   const [editingBill, setEditingBill] = useState(null);
   const [generating, setGenerating] = useState(false);
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     const params = { month, year };
     if (selectedHostel) params.hostel_id = selectedHostel.id;
     Promise.all([
@@ -39,8 +39,8 @@ export default function ElectricityPage() {
       api.get('/residents', { params: { status: 'active', ...(selectedHostel ? { hostel_id: selectedHostel.id } : {}) } })
     ]).then(([bRes, sRes, rRes]) => { setBills(bRes.data); setStats(sRes.data); setResidents(rRes.data); })
       .catch(console.error).finally(() => setLoading(false));
-  };
-  useEffect(() => { fetchData(); }, [month, year, selectedHostel]);
+  }, [month, year, selectedHostel]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async () => {
     try {

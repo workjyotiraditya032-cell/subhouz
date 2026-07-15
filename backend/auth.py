@@ -4,7 +4,6 @@ import jwt
 import secrets
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, Request
-from bson import ObjectId
 
 JWT_ALGORITHM = "HS256"
 
@@ -49,10 +48,13 @@ async def get_current_user(request: Request, db) -> dict:
         payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        
+        # Query users table in Supabase
+        res = await db.table("users").select("*").eq("id", payload["sub"]).execute()
+        user = res.data[0] if res.data else None
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
-        user["_id"] = str(user["_id"])
+        user["_id"] = str(user["id"])
         user.pop("password_hash", None)
         return user
     except jwt.ExpiredSignatureError:

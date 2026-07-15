@@ -2,19 +2,12 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
-from bson import ObjectId
-from bson.errors import InvalidId
-from database import get_db
+from database import get_db, parse_uuid
 from auth import get_current_user
+from services.search_db import get_property_metadata, save_or_update_property_metadata
 import logging
 
 logger = logging.getLogger(__name__)
-
-def parse_oid(val: str) -> ObjectId:
-    try:
-        return ObjectId(val)
-    except (InvalidId, Exception):
-        raise HTTPException(status_code=404, detail="Invalid or not found")
 router = APIRouter(prefix="/api/hostels", tags=["hostels"])
 
 class HostelCreate(BaseModel):
@@ -30,6 +23,24 @@ class HostelCreate(BaseModel):
     monthly_due_date: int = 5
     reminder_grace_days: int = 3
     follow_up_days: int = 7
+    
+    # Advanced metadata fields
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    nearby_colleges: Optional[List[str]] = None
+    nearby_schools: Optional[List[str]] = None
+    nearby_landmarks: Optional[List[str]] = None
+    nearby_metro: Optional[List[str]] = None
+    nearby_bus_stop: Optional[List[str]] = None
+    aliases: Optional[List[str]] = None
+    keywords: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    category: Optional[str] = None
+    property_type: Optional[str] = None
+    gender: Optional[str] = None
+    facilities: Optional[List[str]] = None
+    area: Optional[str] = None
+    country: Optional[str] = None
 
 class HostelUpdate(BaseModel):
     name: Optional[str] = None
@@ -41,28 +52,57 @@ class HostelUpdate(BaseModel):
     monthly_due_date: Optional[int] = None
     reminder_grace_days: Optional[int] = None
     follow_up_days: Optional[int] = None
+    
+    # Advanced metadata fields
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    nearby_colleges: Optional[List[str]] = None
+    nearby_schools: Optional[List[str]] = None
+    nearby_landmarks: Optional[List[str]] = None
+    nearby_metro: Optional[List[str]] = None
+    nearby_bus_stop: Optional[List[str]] = None
+    aliases: Optional[List[str]] = None
+    keywords: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    category: Optional[str] = None
+    property_type: Optional[str] = None
+    gender: Optional[str] = None
+    facilities: Optional[List[str]] = None
+    area: Optional[str] = None
+    country: Optional[str] = None
 
 @router.get("/public")
 async def list_hostels_public():
     """Public endpoint - no auth required. Returns rich hostel info for the public website."""
     db = get_db()
-    hostels = await db.hostels.find().to_list(100)
+    res_hostels = await db.table("hostels").select("*").execute()
+    hostels = res_hostels.data
     result = []
+    
     for h in hostels:
-        h_id = str(h["_id"])
+        h_id = str(h["id"])
+        
         # Compute live stats
-        total_rooms = await db.rooms.count_documents({"hostel_id": h_id})
-        total_beds = await db.beds.count_documents({"hostel_id": h_id})
-        occupied_beds = await db.beds.count_documents({"hostel_id": h_id, "status": "occupied"})
+        res_total_rooms = await db.table("rooms").select("id", count="exact").eq("hostel_id", h_id).execute()
+        total_rooms = res_total_rooms.count or 0
+        
+        res_total_beds = await db.table("beds").select("id", count="exact").eq("hostel_id", h_id).execute()
+        total_beds = res_total_beds.count or 0
+        
+        res_occ_beds = await db.table("beds").select("id", count="exact").eq("hostel_id", h_id).eq("status", "occupied").execute()
+        occupied_beds = res_occ_beds.count or 0
+        
         available_beds = total_beds - occupied_beds
         occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0
 
         # Starting rent (cheapest room)
-        cheapest = await db.rooms.find({"hostel_id": h_id}).sort("rent", 1).limit(1).to_list(1)
-        starting_rent = cheapest[0]["rent"] if cheapest else 0
+        res_cheapest = await db.table("rooms").select("rent").eq("hostel_id", h_id).gt("rent", 0).order("rent", desc=False).limit(1).execute()
+        starting_rent = res_cheapest.data[0]["rent"] if res_cheapest.data else 0
 
         # Facilities: derive from room features + defaults
-        rooms = await db.rooms.find({"hostel_id": h_id}).to_list(500)
+        res_rooms = await db.table("rooms").select("*").eq("hostel_id", h_id).execute()
+        rooms = res_rooms.data
+        
         facilities = ["Wi-Fi", "Water Purifier", "24/7 Security", "CCTV", "Power Backup"]
         has_ac = any(r.get("ac_type") == "ac" for r in rooms)
         has_bathroom = any(r.get("has_bathroom") for r in rooms)
@@ -73,6 +113,7 @@ async def list_hostels_public():
             facilities.append("Attached Bathroom")
         if has_balcony:
             facilities.append("Balcony Rooms")
+            
         # Add hostel-type-specific defaults
         if h.get("hostel_type") in ("boys", "mixed"):
             facilities.extend(["Parking", "Gym Access"])
@@ -81,10 +122,15 @@ async def list_hostels_public():
         facilities.append("Mess / Tiffin")
 
         # Average rating (seeded / computed)
-        import random
-        random.seed(hash(h_id))
-        avg_rating = round(random.uniform(4.2, 4.8), 1)
-        review_count = random.randint(28, 120)
+        avg_rating = float(h.get("average_rating") or 0.0)
+        review_count = int(h.get("review_count") or 0)
+
+        meta = get_property_metadata(h_id) or {}
+        lat = meta.get("latitude") if meta.get("latitude") is not None else 20.2961
+        lng = meta.get("longitude") if meta.get("longitude") is not None else 85.8245
+        area = meta.get("area") or "Bhubaneswar"
+        landmark = meta.get("nearby_landmarks") or meta.get("landmark") or ""
+        college = meta.get("nearby_colleges") or meta.get("college") or ""
 
         result.append({
             "id": h_id,
@@ -106,6 +152,11 @@ async def list_hostels_public():
             "average_rating": avg_rating,
             "review_count": review_count,
             "facilities": list(dict.fromkeys(facilities)),  # dedupe, preserve order
+            "latitude": lat,
+            "longitude": lng,
+            "area": area,
+            "landmark": landmark,
+            "college": college
         })
     return result
 
@@ -113,17 +164,27 @@ async def list_hostels_public():
 async def get_hostel_public(hostel_id: str):
     """Public endpoint — single hostel detail with rooms."""
     db = get_db()
-    hostel = await db.hostels.find_one({"_id": parse_oid(hostel_id)})
+    h_uuid = parse_uuid(hostel_id)
+    
+    res_hostel = await db.table("hostels").select("*").eq("id", h_uuid).execute()
+    hostel = res_hostel.data[0] if res_hostel.data else None
     if not hostel:
         raise HTTPException(status_code=404, detail="Hostel not found")
-    h_id = str(hostel["_id"])
+        
+    h_id = str(hostel["id"])
 
-    rooms = await db.rooms.find({"hostel_id": h_id}).to_list(500)
+    res_rooms = await db.table("rooms").select("*").eq("hostel_id", h_id).execute()
+    rooms = res_rooms.data
     room_list = []
+    
     for r in rooms:
-        r_id = str(r["_id"])
-        bed_total = await db.beds.count_documents({"room_id": r_id})
-        bed_available = await db.beds.count_documents({"room_id": r_id, "status": "available"})
+        r_id = str(r["id"])
+        res_bed_total = await db.table("beds").select("id", count="exact").eq("room_id", r_id).execute()
+        bed_total = res_bed_total.count or 0
+        
+        res_bed_avail = await db.table("beds").select("id", count="exact").eq("room_id", r_id).eq("status", "available").execute()
+        bed_available = res_bed_avail.count or 0
+        
         room_list.append({
             "id": r_id,
             "room_number": r.get("room_number"),
@@ -141,10 +202,14 @@ async def get_hostel_public(hostel_id: str):
             "available_beds": bed_available,
         })
 
-    total_beds = await db.beds.count_documents({"hostel_id": h_id})
-    occupied_beds = await db.beds.count_documents({"hostel_id": h_id, "status": "occupied"})
+    res_total_beds = await db.table("beds").select("id", count="exact").eq("hostel_id", h_id).execute()
+    total_beds = res_total_beds.count or 0
+    
+    res_occ_beds = await db.table("beds").select("id", count="exact").eq("hostel_id", h_id).eq("status", "occupied").execute()
+    occupied_beds = res_occ_beds.count or 0
+    
     occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0
-    cheapest = min((r["rent"] for r in room_list if r.get("rent")), default=0)
+    cheapest = min((r["rent"] for r in room_list if r.get("rent") and r["rent"] > 0), default=0)
 
     facilities = ["Wi-Fi", "Water Purifier", "24/7 Security", "CCTV", "Power Backup"]
     if any(r["ac_type"] == "ac" for r in room_list):
@@ -159,10 +224,15 @@ async def get_hostel_public(hostel_id: str):
         facilities.extend(["Laundry", "Common Kitchen"])
     facilities.append("Mess / Tiffin")
 
-    import random
-    random.seed(hash(h_id))
-    avg_rating = round(random.uniform(4.2, 4.8), 1)
-    review_count = random.randint(28, 120)
+    avg_rating = float(hostel.get("average_rating") or 0.0)
+    review_count = int(hostel.get("review_count") or 0)
+
+    meta = get_property_metadata(h_id) or {}
+    lat = meta.get("latitude") if meta.get("latitude") is not None else 20.2961
+    lng = meta.get("longitude") if meta.get("longitude") is not None else 85.8245
+    area = meta.get("area") or "Bhubaneswar"
+    landmark = meta.get("nearby_landmarks") or meta.get("landmark") or ""
+    college = meta.get("nearby_colleges") or meta.get("college") or ""
 
     return {
         "id": h_id,
@@ -185,26 +255,42 @@ async def get_hostel_public(hostel_id: str):
         "review_count": review_count,
         "facilities": list(dict.fromkeys(facilities)),
         "rooms": sorted(room_list, key=lambda r: r.get("room_number", "")),
+        "latitude": lat,
+        "longitude": lng,
+        "area": area,
+        "landmark": landmark,
+        "college": college
     }
-
 
 @router.get("")
 async def list_hostels(request: Request):
     db = get_db()
     user = await get_current_user(request, db)
     if user["role"] == "super_admin":
-        hostels = await db.hostels.find().to_list(100)
+        res_hostels = await db.table("hostels").select("*").execute()
+        hostels = res_hostels.data
     else:
-        hostels = await db.hostels.find({"_id": parse_oid(user.get("hostel_id"))}).to_list(1)
+        h_uuid = parse_uuid(user.get("hostel_id"))
+        res_hostels = await db.table("hostels").select("*").eq("id", h_uuid).execute()
+        hostels = res_hostels.data
     
     for h in hostels:
-        h["_id"] = str(h["_id"])
+        h["_id"] = str(h["id"])
         h["id"] = h["_id"]
+        
         # Compute live stats
-        h["total_rooms"] = await db.rooms.count_documents({"hostel_id": h["id"]})
-        h["total_beds"] = await db.beds.count_documents({"hostel_id": h["id"]})
-        h["occupied_beds"] = await db.beds.count_documents({"hostel_id": h["id"], "status": "occupied"})
-        h["total_residents"] = await db.residents.count_documents({"hostel_id": h["id"], "status": "active"})
+        res_rooms_cnt = await db.table("rooms").select("id", count="exact").eq("hostel_id", h["id"]).execute()
+        h["total_rooms"] = res_rooms_cnt.count or 0
+        
+        res_beds_cnt = await db.table("beds").select("id", count="exact").eq("hostel_id", h["id"]).execute()
+        h["total_beds"] = res_beds_cnt.count or 0
+        
+        res_occ_cnt = await db.table("beds").select("id", count="exact").eq("hostel_id", h["id"]).eq("status", "occupied").execute()
+        h["occupied_beds"] = res_occ_cnt.count or 0
+        
+        res_res_cnt = await db.table("residents").select("id", count="exact").eq("hostel_id", h["id"]).eq("status", "active").execute()
+        h["total_residents"] = res_res_cnt.count or 0
+        
     return hostels
 
 @router.get("/{hostel_id}")
@@ -214,15 +300,27 @@ async def get_hostel(hostel_id: str, request: Request):
     if user["role"] == "hostel_admin" and user.get("hostel_id") != hostel_id:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    hostel = await db.hostels.find_one({"_id": parse_oid(hostel_id)})
+    h_uuid = parse_uuid(hostel_id)
+    res_hostel = await db.table("hostels").select("*").eq("id", h_uuid).execute()
+    hostel = res_hostel.data[0] if res_hostel.data else None
     if not hostel:
         raise HTTPException(status_code=404, detail="Hostel not found")
-    hostel["_id"] = str(hostel["_id"])
+        
+    hostel["_id"] = str(hostel["id"])
     hostel["id"] = hostel["_id"]
-    hostel["total_rooms"] = await db.rooms.count_documents({"hostel_id": hostel_id})
-    hostel["total_beds"] = await db.beds.count_documents({"hostel_id": hostel_id})
-    hostel["occupied_beds"] = await db.beds.count_documents({"hostel_id": hostel_id, "status": "occupied"})
-    hostel["total_residents"] = await db.residents.count_documents({"hostel_id": hostel_id, "status": "active"})
+    
+    res_rooms_cnt = await db.table("rooms").select("id", count="exact").eq("hostel_id", hostel_id).execute()
+    hostel["total_rooms"] = res_rooms_cnt.count or 0
+    
+    res_beds_cnt = await db.table("beds").select("id", count="exact").eq("hostel_id", hostel_id).execute()
+    hostel["total_beds"] = res_beds_cnt.count or 0
+    
+    res_occ_cnt = await db.table("beds").select("id", count="exact").eq("hostel_id", hostel_id).eq("status", "occupied").execute()
+    hostel["occupied_beds"] = res_occ_cnt.count or 0
+    
+    res_res_cnt = await db.table("residents").select("id", count="exact").eq("hostel_id", hostel_id).eq("status", "active").execute()
+    hostel["total_residents"] = res_res_cnt.count or 0
+    
     return hostel
 
 @router.post("")
@@ -233,21 +331,48 @@ async def create_hostel(req: HostelCreate, request: Request):
         raise HTTPException(status_code=403, detail="Only Super Admin can create hostels")
     
     doc = req.model_dump()
-    doc["created_at"] = datetime.now(timezone.utc)
-    doc["updated_at"] = datetime.now(timezone.utc)
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
     doc["images"] = []
-    result = await db.hostels.insert_one(doc)
-    doc["_id"] = str(result.inserted_id)
-    doc["id"] = doc["_id"]
     
-    await db.activity_logs.insert_one({
-        "user_id": user["_id"], "user_name": user.get("name", ""),
-        "hostel_id": doc["id"], "action": "hostel_created",
-        "entity_type": "hostel", "entity_id": doc["id"],
+    # Extract advanced search metadata fields to prevent Supabase column mismatch
+    advanced_keys = [
+        "latitude", "longitude", "nearby_colleges", "nearby_schools", "nearby_landmarks",
+        "nearby_metro", "nearby_bus_stop", "aliases", "keywords", "tags",
+        "category", "property_type", "gender", "facilities", "area", "country"
+    ]
+    advanced_updates = {k: doc.pop(k) for k in list(doc.keys()) if k in advanced_keys}
+    
+    res_insert = await db.table("hostels").insert(doc).execute()
+    if not res_insert.data:
+        raise HTTPException(status_code=500, detail="Failed to create hostel")
+        
+    inserted_doc = res_insert.data[0]
+    inserted_doc["_id"] = str(inserted_doc["id"])
+    inserted_doc["id"] = inserted_doc["_id"]
+    
+    # Save search coordinates and metadata index in SQLite database
+    save_or_update_property_metadata(
+        inserted_doc["id"],
+        inserted_doc["name"],
+        inserted_doc["address"],
+        inserted_doc["city"],
+        inserted_doc["state"],
+        advanced_updates
+    )
+    
+    await db.table("activity_logs").insert({
+        "user_id": str(user["id"]),
+        "user_name": user.get("name", ""),
+        "hostel_id": inserted_doc["id"],
+        "action": "hostel_created",
+        "entity_type": "hostel",
+        "entity_id": inserted_doc["id"],
         "details": f"Created hostel: {req.name}",
-        "timestamp": datetime.now(timezone.utc)
-    })
-    return doc
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }).execute()
+    
+    return inserted_doc
 
 @router.put("/{hostel_id}")
 async def update_hostel(hostel_id: str, req: HostelUpdate, request: Request):
@@ -256,15 +381,36 @@ async def update_hostel(hostel_id: str, req: HostelUpdate, request: Request):
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can update hostels")
     
+    h_uuid = parse_uuid(hostel_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
-    updates["updated_at"] = datetime.now(timezone.utc)
-    result = await db.hostels.update_one({"_id": parse_oid(hostel_id)}, {"$set": updates})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Hostel not found")
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    hostel = await db.hostels.find_one({"_id": parse_oid(hostel_id)})
-    hostel["_id"] = str(hostel["_id"])
+    # Extract advanced search metadata fields to prevent Supabase column mismatch
+    advanced_keys = [
+        "latitude", "longitude", "nearby_colleges", "nearby_schools", "nearby_landmarks",
+        "nearby_metro", "nearby_bus_stop", "aliases", "keywords", "tags",
+        "category", "property_type", "gender", "facilities", "area", "country"
+    ]
+    advanced_updates = {k: updates.pop(k) for k in list(updates.keys()) if k in advanced_keys}
+    
+    res_update = await db.table("hostels").update(updates).eq("id", h_uuid).execute()
+    if not res_update.data:
+        raise HTTPException(status_code=404, detail="Hostel not found")
+        
+    hostel = res_update.data[0]
+    hostel["_id"] = str(hostel["id"])
     hostel["id"] = hostel["_id"]
+    
+    # Update search coordinates and metadata index in SQLite database
+    save_or_update_property_metadata(
+        hostel["id"],
+        hostel.get("name"),
+        hostel.get("address"),
+        hostel.get("city"),
+        hostel.get("state"),
+        advanced_updates
+    )
+    
     return hostel
 
 @router.delete("/{hostel_id}")
@@ -273,7 +419,9 @@ async def delete_hostel(hostel_id: str, request: Request):
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can delete hostels")
-    result = await db.hostels.delete_one({"_id": parse_oid(hostel_id)})
-    if result.deleted_count == 0:
+        
+    h_uuid = parse_uuid(hostel_id)
+    res_del = await db.table("hostels").delete().eq("id", h_uuid).execute()
+    if not res_del.data:
         raise HTTPException(status_code=404, detail="Hostel not found")
     return {"message": "Hostel deleted"}

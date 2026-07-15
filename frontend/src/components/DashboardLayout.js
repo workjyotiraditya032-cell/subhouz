@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Building2, LayoutDashboard, Home, DoorOpen, Users, CreditCard, Zap, Settings, LogOut, Bell, Search, ChevronDown, Menu, X, MessageCircle, Bolt, ShieldCheck } from 'lucide-react';
+import { Building2, LayoutDashboard, Home, DoorOpen, Users, Image,CreditCard, Zap, Settings, LogOut, Bell, Search, ChevronDown, Menu, X, MessageCircle, Bolt, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import api from '../lib/api';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/dashboard/hostels', label: 'Hostels', icon: Home, superAdminOnly: true },
+  { path: '/dashboard/hostels', label: 'Properties', icon: Home, superAdminOnly: true },
   { path: '/dashboard/rooms', label: 'Rooms & Beds', icon: DoorOpen },
   { path: '/dashboard/residents', label: 'Residents', icon: Users },
   { path: '/dashboard/rent-tracker', label: 'Rent Tracker', icon: CreditCard },
@@ -16,6 +16,12 @@ const navItems = [
   { path: '/dashboard/electricity', label: 'Electricity', icon: Bolt },
   { path: '/dashboard/automation', label: 'Automation', icon: Zap },
   { path: '/dashboard/admin-management', label: 'Admin Users', icon: ShieldCheck, superAdminOnly: true },
+  {
+  path: "/dashboard/website-images",
+  label: "Website Images",
+  icon: Image,
+  superAdminOnly: true,
+},
   { path: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -85,13 +91,13 @@ export default function DashboardLayout() {
                   data-testid="hostel-switcher"
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[#F1F5F9] hover:bg-[#E2E8F0] text-sm font-medium text-[#0F172A] transition-colors"
                 >
-                  <span className="truncate">{selectedHostel ? selectedHostel.name : 'All Hostels'}</span>
+                  <span className="truncate">{selectedHostel ? selectedHostel.name : 'All Properties'}</span>
                   <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuItem onClick={() => handleHostelSelect(null)} data-testid="hostel-option-all">
-                  All Hostels (Overview)
+                  All Properties (Overview)
                 </DropdownMenuItem>
                 {hostels.map(h => (
                   <DropdownMenuItem key={h.id} onClick={() => handleHostelSelect(h)} data-testid={`hostel-option-${h.id}`}>
@@ -161,7 +167,7 @@ export default function DashboardLayout() {
               </div>
               <div className="hidden sm:block">
                 <p className="text-sm font-medium text-[#0F172A] leading-none">{user?.name}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{user?.role === 'super_admin' ? 'Super Admin' : 'Hostel Admin'}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{user?.role === 'super_admin' ? 'Super Admin' : 'Property Admin'}</p>
               </div>
             </div>
           </div>

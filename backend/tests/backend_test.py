@@ -6,7 +6,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://rent-track-hub.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 
 SUPER_ADMIN = {"email": "admin@subhouz.com", "password": "SubhouzAdmin@2026"}
 HOSTEL_ADMIN = {"email": "jogmaya.admin@subhouz.com", "password": "hostel@123"}

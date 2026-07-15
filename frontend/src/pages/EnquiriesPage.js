@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MessageCircle, Plus, Search, Filter, Trash2, Phone, Mail, Calendar, User, ChevronDown, ExternalLink, StickyNote } from 'lucide-react';
@@ -33,7 +33,7 @@ export default function EnquiriesPage() {
   const [noteText, setNoteText] = useState('');
   const [users, setUsers] = useState([]);
 
-  const fetchEnquiries = () => {
+  const fetchEnquiries = useCallback(() => {
     const params = {};
     if (selectedHostel) params.hostel_id = selectedHostel.id;
     if (statusFilter !== 'all') params.status = statusFilter;
@@ -42,9 +42,9 @@ export default function EnquiriesPage() {
       api.get('/enquiries/stats', { params: selectedHostel ? { hostel_id: selectedHostel.id } : {} })
     ]).then(([eRes, sRes]) => { setEnquiries(eRes.data); setStats(sRes.data); })
       .catch(console.error).finally(() => setLoading(false));
-  };
+  }, [selectedHostel, statusFilter]);
 
-  useEffect(() => { fetchEnquiries(); }, [selectedHostel, statusFilter]);
+  useEffect(() => { fetchEnquiries(); }, [fetchEnquiries]);
   useEffect(() => {
     if (user?.role === 'super_admin') api.get('/admin/users').then(r => setUsers(r.data)).catch(() => {});
   }, [user]);

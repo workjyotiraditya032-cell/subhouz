@@ -2,8 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
-from bson import ObjectId
-from database import get_db
+from database import get_db, parse_uuid
 from auth import get_current_user
 
 router = APIRouter(prefix="/api/rooms", tags=["rooms"])
@@ -40,36 +39,53 @@ class RoomUpdate(BaseModel):
 async def list_rooms(request: Request, hostel_id: Optional[str] = Query(None)):
     db = get_db()
     user = await get_current_user(request, db)
-    query = {}
-    if user["role"] == "hostel_admin":
-        query["hostel_id"] = user.get("hostel_id")
-    elif hostel_id:
-        query["hostel_id"] = hostel_id
     
-    rooms = await db.rooms.find(query).to_list(500)
+    q = db.table("rooms").select("*")
+    if user["role"] == "hostel_admin":
+        q = q.eq("hostel_id", parse_uuid(user.get("hostel_id")))
+    elif hostel_id:
+        q = q.eq("hostel_id", parse_uuid(hostel_id))
+        
+    res_rooms = await q.execute()
+    rooms = res_rooms.data
+    
     for r in rooms:
-        r["_id"] = str(r["_id"])
+        r["_id"] = str(r["id"])
         r["id"] = r["_id"]
-        r["occupied"] = await db.beds.count_documents({"room_id": r["id"], "status": "occupied"})
-        total_beds = await db.beds.count_documents({"room_id": r["id"]})
-        r["total_beds"] = total_beds
+        
+        # Count occupied beds
+        res_occ = await db.table("beds").select("id", count="exact").eq("room_id", r["id"]).eq("status", "occupied").execute()
+        r["occupied"] = res_occ.count or 0
+        
+        # Count total beds
+        res_tb = await db.table("beds").select("id", count="exact").eq("room_id", r["id"]).execute()
+        r["total_beds"] = res_tb.count or 0
+        
     return rooms
 
 @router.get("/{room_id}")
 async def get_room(room_id: str, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
-    room = await db.rooms.find_one({"_id": ObjectId(room_id)})
+    
+    room_uuid = parse_uuid(room_id)
+    res_room = await db.table("rooms").select("*").eq("id", room_uuid).execute()
+    room = res_room.data[0] if res_room.data else None
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
+        
     if user["role"] == "hostel_admin" and user.get("hostel_id") != room.get("hostel_id"):
         raise HTTPException(status_code=403, detail="Access denied")
-    room["_id"] = str(room["_id"])
+        
+    room["_id"] = str(room["id"])
     room["id"] = room["_id"]
-    beds = await db.beds.find({"room_id": room_id}).to_list(50)
+    
+    res_beds = await db.table("beds").select("*").eq("room_id", room_uuid).execute()
+    beds = res_beds.data
     for b in beds:
-        b["_id"] = str(b["_id"])
+        b["_id"] = str(b["id"])
         b["id"] = b["_id"]
+        
     room["beds"] = beds
     return room
 
@@ -79,43 +95,52 @@ async def create_room(req: RoomCreate, request: Request):
     user = await get_current_user(request, db)
     if user["role"] == "hostel_admin" and user.get("hostel_id") != req.hostel_id:
         raise HTTPException(status_code=403, detail="Access denied")
-    
+        
     doc = req.model_dump()
+    doc["hostel_id"] = parse_uuid(req.hostel_id)
     doc["status"] = "available"
     doc["occupied"] = 0
-    doc["created_at"] = datetime.now(timezone.utc)
-    result = await db.rooms.insert_one(doc)
-    room_id = str(result.inserted_id)
-    doc["_id"] = room_id
-    doc["id"] = room_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    
+    res_insert = await db.table("rooms").insert(doc).execute()
+    if not res_insert.data:
+        raise HTTPException(status_code=500, detail="Failed to create room")
+        
+    inserted_doc = res_insert.data[0]
+    room_id = str(inserted_doc["id"])
+    inserted_doc["_id"] = room_id
+    inserted_doc["id"] = room_id
     
     # Auto-create beds
     for i in range(1, req.capacity + 1):
         bed_doc = {
-            "hostel_id": req.hostel_id,
-            "room_id": room_id,
+            "hostel_id": parse_uuid(req.hostel_id),
+            "room_id": parse_uuid(room_id),
             "bed_number": f"B{i}",
             "status": "available",
             "resident_id": None,
             "monthly_rent": req.rent,
-            "created_at": datetime.now(timezone.utc)
+            "created_at": datetime.now(timezone.utc).isoformat()
         }
-        await db.beds.insert_one(bed_doc)
-    
-    doc["total_beds"] = req.capacity
-    return doc
+        await db.table("beds").insert(bed_doc).execute()
+        
+    inserted_doc["total_beds"] = req.capacity
+    return inserted_doc
 
 @router.put("/{room_id}")
 async def update_room(room_id: str, req: RoomUpdate, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
+    
+    room_uuid = parse_uuid(room_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
-    updates["updated_at"] = datetime.now(timezone.utc)
-    result = await db.rooms.update_one({"_id": ObjectId(room_id)}, {"$set": updates})
-    if result.matched_count == 0:
+    
+    res_update = await db.table("rooms").update(updates).eq("id", room_uuid).execute()
+    if not res_update.data:
         raise HTTPException(status_code=404, detail="Room not found")
-    room = await db.rooms.find_one({"_id": ObjectId(room_id)})
-    room["_id"] = str(room["_id"])
+        
+    room = res_update.data[0]
+    room["_id"] = str(room["id"])
     room["id"] = room["_id"]
     return room
 
@@ -123,10 +148,14 @@ async def update_room(room_id: str, req: RoomUpdate, request: Request):
 async def delete_room(room_id: str, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
-    result = await db.rooms.delete_one({"_id": ObjectId(room_id)})
-    if result.deleted_count == 0:
+    
+    room_uuid = parse_uuid(room_id)
+    res_del = await db.table("rooms").delete().eq("id", room_uuid).execute()
+    if not res_del.data:
         raise HTTPException(status_code=404, detail="Room not found")
-    await db.beds.delete_many({"room_id": room_id})
+        
+    # Beds are deleted cascade by foreign key, but we also run delete on beds table to make sure
+    await db.table("beds").delete().eq("room_id", room_uuid).execute()
     return {"message": "Room and beds deleted"}
 
 # Bed endpoints
@@ -134,17 +163,19 @@ async def delete_room(room_id: str, request: Request):
 async def list_beds(request: Request, hostel_id: Optional[str] = Query(None), room_id: Optional[str] = Query(None)):
     db = get_db()
     user = await get_current_user(request, db)
-    query = {}
-    if user["role"] == "hostel_admin":
-        query["hostel_id"] = user.get("hostel_id")
-    elif hostel_id:
-        query["hostel_id"] = hostel_id
-    if room_id:
-        query["room_id"] = room_id
     
-    beds = await db.beds.find(query).to_list(1000)
+    q = db.table("beds").select("*")
+    if user["role"] == "hostel_admin":
+        q = q.eq("hostel_id", parse_uuid(user.get("hostel_id")))
+    elif hostel_id:
+        q = q.eq("hostel_id", parse_uuid(hostel_id))
+    if room_id:
+        q = q.eq("room_id", parse_uuid(room_id))
+        
+    res_beds = await q.execute()
+    beds = res_beds.data
     for b in beds:
-        b["_id"] = str(b["_id"])
+        b["_id"] = str(b["id"])
         b["id"] = b["_id"]
     return beds
 
@@ -152,11 +183,21 @@ async def list_beds(request: Request, hostel_id: Optional[str] = Query(None), ro
 async def update_bed(bed_id: str, request: Request):
     db = get_db()
     body = await request.json()
+    
+    bed_uuid = parse_uuid(bed_id)
     updates = {k: v for k, v in body.items() if k != "_id" and k != "id"}
-    result = await db.beds.update_one({"_id": ObjectId(bed_id)}, {"$set": updates})
-    if result.matched_count == 0:
+    if "hostel_id" in updates and updates["hostel_id"]:
+        updates["hostel_id"] = parse_uuid(updates["hostel_id"])
+    if "room_id" in updates and updates["room_id"]:
+        updates["room_id"] = parse_uuid(updates["room_id"])
+    if "resident_id" in updates and updates["resident_id"]:
+        updates["resident_id"] = parse_uuid(updates["resident_id"])
+        
+    res_update = await db.table("beds").update(updates).eq("id", bed_uuid).execute()
+    if not res_update.data:
         raise HTTPException(status_code=404, detail="Bed not found")
-    bed = await db.beds.find_one({"_id": ObjectId(bed_id)})
-    bed["_id"] = str(bed["_id"])
+        
+    bed = res_update.data[0]
+    bed["_id"] = str(bed["id"])
     bed["id"] = bed["_id"]
     return bed

@@ -40,7 +40,7 @@ export default function DashboardPage() {
   if (!stats) return null;
 
   const statCards = [
-    { label: 'Total Hostels', value: stats.total_hostels, icon: Building2, color: '#1D4ED8', show: user?.role === 'super_admin' },
+    { label: 'Total Properties', value: stats.total_hostels, icon: Building2, color: '#1D4ED8', show: user?.role === 'super_admin' },
     { label: 'Total Rooms', value: stats.total_rooms, icon: DoorOpen, color: '#8B5CF6' },
     { label: 'Total Beds', value: stats.total_beds, icon: DoorOpen, color: '#0EA5E9' },
     { label: 'Active Residents', value: stats.total_residents, icon: Users, color: '#10B981' },
@@ -63,7 +63,7 @@ export default function DashboardPage() {
             {selectedHostel ? selectedHostel.name : 'Dashboard Overview'}
           </h1>
           <p className="text-sm text-[#64748B] mt-1">
-            Welcome back, {user?.name}. Here's your hostel performance for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}.
+            Welcome back, {user?.name}. Here's your property performance for {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}.
           </p>
         </div>
       </div>

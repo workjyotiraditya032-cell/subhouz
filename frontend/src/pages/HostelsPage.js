@@ -62,29 +62,29 @@ export default function HostelsPage() {
     <div className="space-y-6" data-testid="hostels-page">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Hostels</h1>
-          <p className="text-sm text-[#64748B] mt-1">Manage your hostel properties</p>
+          <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Properties</h1>
+          <p className="text-sm text-[#64748B] mt-1">Manage your properties</p>
         </div>
         {user?.role === 'super_admin' && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button data-testid="add-hostel-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white" onClick={() => { setEditing(null); setForm({ name: '', code: '', address: '', city: 'Bhubaneswar', state: 'Odisha', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 }); }}>
-                <Plus className="w-4 h-4 mr-2" /> Add Hostel
+                <Plus className="w-4 h-4 mr-2" /> Add Property
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit Hostel' : 'Add New Hostel'}</DialogTitle>
+                <DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit Property' : 'Add New Property'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label className="text-xs">Name *</Label><Input data-testid="hostel-name-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Hostel Name" /></div>
+                  <div><Label className="text-xs">Name *</Label><Input data-testid="hostel-name-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Property Name" /></div>
                   <div><Label className="text-xs">Code *</Label><Input data-testid="hostel-code-input" value={form.code} onChange={e => setForm({...form, code: e.target.value})} placeholder="JMH" /></div>
                 </div>
                 <div><Label className="text-xs">Address *</Label><Input data-testid="hostel-address-input" value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Full address" /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label className="text-xs">Phone</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+91..." /></div>
-                  <div><Label className="text-xs">Email</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@hostel.com" /></div>
+                  <div><Label className="text-xs">Email</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@property.com" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -100,7 +100,7 @@ export default function HostelsPage() {
                   </div>
                   <div><Label className="text-xs">Monthly Due Date</Label><Input type="number" min={1} max={28} value={form.monthly_due_date} onChange={e => setForm({...form, monthly_due_date: parseInt(e.target.value) || 5})} /></div>
                 </div>
-                <Button data-testid="save-hostel-btn" onClick={handleSave} className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] text-white">{editing ? 'Update Hostel' : 'Create Hostel'}</Button>
+                <Button data-testid="save-hostel-btn" onClick={handleSave} className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] text-white">{editing ? 'Update Property' : 'Create Property'}</Button>
               </div>
             </DialogContent>
           </Dialog>

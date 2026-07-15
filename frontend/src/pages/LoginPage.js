@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { useAuth } from '../contexts/AuthContext';
 import { formatApiError } from '../lib/api';
+import { useWebsiteImage } from '../hooks/useWebsiteImages';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,12 +18,15 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Dynamic logo fetching
+  const logo = useWebsiteImage('website_logo');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const user = await login(email, password);
+      await login(email, password);
       navigate('/dashboard');
     } catch (err) {
       setError(formatApiError(err.response?.data?.detail) || err.message);
@@ -46,15 +50,25 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-[#2D5F3F] flex items-center justify-center">
-            <span className="text-white font-bold text-base" style={{ fontFamily: "'Fraunces', serif" }}>S</span>
-          </div>
+          {logo.loading ? (
+            <div className="w-9 h-9 rounded-lg bg-white/10 animate-pulse" />
+          ) : logo.image ? (
+            <img
+              src={logo.image}
+              alt={logo.alt_text || "Subhouz Logo"}
+              className="w-9 h-9 object-contain"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-[#2D5F3F] flex items-center justify-center">
+              <span className="text-white font-bold text-base" style={{ fontFamily: "'Fraunces', serif" }}>S</span>
+            </div>
+          )}
           <span className="text-2xl font-semibold text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
         </div>
 
         <div className="glass-card p-8">
           <h2 className="text-xl font-semibold text-white text-center mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Admin Portal</h2>
-          <p className="text-sm text-[#A39889] text-center mb-6">Sign in to manage your hostels</p>
+          <p className="text-sm text-[#A39889] text-center mb-6">Sign in to manage your properties</p>
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 text-sm text-red-400" data-testid="login-error">
@@ -116,7 +130,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-4 border-t border-white/5">
             <p className="text-xs text-[#6B5E54] text-center">
-              This is the admin portal for hostel management.
+              This is the admin portal for property management.
             </p>
           </div>
         </div>

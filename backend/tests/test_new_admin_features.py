@@ -9,7 +9,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://rent-track-hub.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 SUPER_ADMIN = {"email": "admin@subhouz.com", "password": "SubhouzAdmin@2026"}
 HOSTEL_ADMIN = {"email": "jogmaya.admin@subhouz.com", "password": "hostel@123"}
 
@@ -239,10 +239,7 @@ class TestResidentDocuments:
             pytest.skip("No residents to test docs")
         rid = residents[0]["id"]
         payload = {
-            "photo_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==",
-            "aadhaar_number": "1234 5678 9012",
-            "aadhaar_front": "data:image/png;base64,AAA==",
-            "aadhaar_back": "data:image/png;base64,BBB==",
+            "aadhaar_url": "https://example.com/aadhaar.pdf",
             "emergency_contact_name": "TEST_EM_Contact",
             "emergency_contact_phone": "9998887777",
             "emergency_contact_relation": "Father",
@@ -254,9 +251,16 @@ class TestResidentDocuments:
         g = super_session.get(f"{BASE_URL}/api/residents/{rid}", timeout=15)
         assert g.status_code == 200
         d = g.json()
-        assert d.get("aadhaar_number") == "1234 5678 9012"
+        assert d.get("aadhaar_url") == "https://example.com/aadhaar.pdf"
         assert d.get("emergency_contact_name") == "TEST_EM_Contact"
         assert d.get("emergency_contact_phone") == "9998887777"
+
+        # Test validation of invalid URL
+        bad_payload = {
+            "aadhaar_url": "not_a_valid_url"
+        }
+        r_bad = super_session.put(f"{BASE_URL}/api/residents/{rid}/documents", json=bad_payload, timeout=15)
+        assert r_bad.status_code == 400
 
 
 # ------------------- Sanity: existing endpoints intact -------------------

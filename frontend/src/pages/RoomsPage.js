@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { DoorOpen, Plus, Pencil, Trash2, Wind, Droplets } from 'lucide-react';
@@ -22,23 +22,23 @@ export default function RoomsPage() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ hostel_id: '', room_number: '', floor_number: 0, room_type: 'bachelor', ac_type: 'non_ac', capacity: 2, rent: 5000, has_bathroom: true, has_balcony: false });
 
-  const fetchRooms = () => {
+  const fetchRooms = useCallback(() => {
     const params = {};
     if (selectedHostel) params.hostel_id = selectedHostel.id;
     api.get('/rooms', { params }).then(res => setRooms(res.data)).catch(console.error).finally(() => setLoading(false));
-  };
+  }, [selectedHostel]);
 
   useEffect(() => {
     fetchRooms();
     if (user?.role === 'super_admin') {
       api.get('/hostels').then(res => setHostels(res.data)).catch(() => {});
     }
-  }, [selectedHostel, user]);
+  }, [fetchRooms, user]);
 
   const handleSave = async () => {
     try {
       const hostelId = form.hostel_id || selectedHostel?.id || (user?.role === 'hostel_admin' ? user?.hostel_id : '');
-      if (!hostelId) { toast.error('Please select a hostel'); return; }
+      if (!hostelId) { toast.error('Please select a property'); return; }
       const payload = { ...form, hostel_id: hostelId, floor_number: parseInt(form.floor_number), capacity: parseInt(form.capacity), rent: parseFloat(form.rent) };
       if (editing) {
         await api.put(`/rooms/${editing}`, payload);
@@ -79,9 +79,9 @@ export default function RoomsPage() {
             <div className="space-y-4 mt-4">
               {user?.role === 'super_admin' && !editing && (
                 <div>
-                  <Label className="text-xs">Hostel *</Label>
+                  <Label className="text-xs">Property *</Label>
                   <Select value={form.hostel_id} onValueChange={v => setForm({...form, hostel_id: v})}>
-                    <SelectTrigger><SelectValue placeholder="Select hostel" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
                     <SelectContent>{hostels.map(h => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>

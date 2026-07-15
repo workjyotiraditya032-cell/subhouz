@@ -16,6 +16,8 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [whatsappConfig, setWhatsappConfig] = useState({ phone_number_id: '', business_account_id: '', access_token: '', enabled: false });
   const [saving, setSaving] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState(false);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'hostel_admin', hostel_id: '' });
   const [hostels, setHostels] = useState([]);
@@ -32,11 +34,29 @@ export default function SettingsPage() {
   const saveWhatsApp = async () => {
     setSaving(true);
     try {
-      await api.put('/automation/whatsapp-config', whatsappConfig);
-      toast.success('WhatsApp configuration saved');
+      // Auto-enable if credentials are present
+      const cfg = {
+        ...whatsappConfig,
+        enabled: !!(whatsappConfig.phone_number_id && whatsappConfig.access_token) || whatsappConfig.enabled
+      };
+      await api.put('/automation/whatsapp-config', cfg);
+      setWhatsappConfig(cfg);
+      toast.success('WhatsApp configuration saved!');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error saving');
     } finally { setSaving(false); }
+  };
+
+  const sendTestWhatsApp = async () => {
+    if (!testPhone.trim()) { toast.error('Please enter a phone number'); return; }
+    setTestSending(true);
+    try {
+      const res = await api.post('/automation/test-whatsapp', { phone: testPhone.trim() });
+      toast.success(res.data.message || 'Test message sent!');
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to send test message';
+      toast.error(detail);
+    } finally { setTestSending(false); }
   };
 
   const createUser = async () => {
@@ -123,6 +143,29 @@ export default function SettingsPage() {
                   <Save className="w-4 h-4 mr-2" /> {saving ? 'Saving...' : 'Save Configuration'}
                 </Button>
               </div>
+
+              {/* ── Test Message Section ── */}
+              <div className="mt-6 pt-6 border-t border-[#E2E8F0] space-y-3">
+                <h3 className="text-sm font-semibold text-[#0F172A]">Send Test WhatsApp Message</h3>
+                <p className="text-xs text-[#64748B]">Enter a phone number to send a real test message and verify your API credentials are working.</p>
+                <div className="flex gap-2">
+                  <input
+                    data-testid="test-whatsapp-phone"
+                    className="flex-1 px-3 py-2 border border-[#E2E8F0] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]"
+                    placeholder="e.g. 8260631388 or +918260631388"
+                    value={testPhone}
+                    onChange={e => setTestPhone(e.target.value)}
+                  />
+                  <Button
+                    data-testid="send-test-whatsapp-btn"
+                    onClick={sendTestWhatsApp}
+                    disabled={testSending}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white whitespace-nowrap"
+                  >
+                    {testSending ? '⏳ Sending...' : '📱 Send Test'}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -150,15 +193,15 @@ export default function SettingsPage() {
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="super_admin">Super Admin</SelectItem>
-                            <SelectItem value="hostel_admin">Hostel Admin</SelectItem>
+                            <SelectItem value="hostel_admin">Property Admin</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       {newUser.role === 'hostel_admin' && (
                         <div>
-                          <Label className="text-xs">Assigned Hostel</Label>
+                          <Label className="text-xs">Assigned Property</Label>
                           <Select value={newUser.hostel_id} onValueChange={v => setNewUser({...newUser, hostel_id: v})}>
-                            <SelectTrigger><SelectValue placeholder="Select hostel" /></SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
                             <SelectContent>{hostels.map(h => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}</SelectContent>
                           </Select>
                         </div>
@@ -180,7 +223,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.role === 'super_admin' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'}`}>
-                        {u.role === 'super_admin' ? 'Super Admin' : 'Hostel Admin'}
+                        {u.role === 'super_admin' ? 'Super Admin' : 'Property Admin'}
                       </span>
                     </div>
                   ))}
@@ -208,8 +251,8 @@ export default function SettingsPage() {
               </div>
               <div className="pt-4 border-t border-[#F1F5F9]">
                 <h3 className="text-sm font-semibold text-[#0F172A] mb-2">About</h3>
-                <p className="text-sm text-[#64748B]">Subhouz v1.0 — Smart Hostel Management Platform</p>
-                <p className="text-xs text-[#94A3B8] mt-1">Built for hostel owners in Bhubaneswar, Odisha</p>
+                <p className="text-sm text-[#64748B]">Subhouz v1.0 — Smart Property Management Platform</p>
+                <p className="text-xs text-[#94A3B8] mt-1">Built for property owners in Bhubaneswar, Odisha</p>
               </div>
             </CardContent>
           </Card>
