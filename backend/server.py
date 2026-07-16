@@ -63,6 +63,13 @@ app.include_router(admin_router)
 app.include_router(electricity_router)
 app.include_router(website_images_router)
 app.include_router(search_router)
+@app.get("/")
+async def root():
+    return {
+        "message": "SubHouz API is running",
+        "docs": "/docs",
+        "version": "1.0.0"
+    }
 
 @app.get("/api")
 async def root():
