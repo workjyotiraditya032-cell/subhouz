@@ -15,7 +15,18 @@ from datetime import datetime, timezone
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__) 
 app = FastAPI(title="Subhouz API", description="Smart Hostel Management Platform", version="1.0.0")
+@app.get("/")
+async def root():
+    return {
+        "status": "success",
+        "message": "SubHouz API is running",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
 # CORS
 origins = [
     "http://localhost:3000",
@@ -63,13 +74,7 @@ app.include_router(admin_router)
 app.include_router(electricity_router)
 app.include_router(website_images_router)
 app.include_router(search_router)
-@app.get("/")
-async def root():
-    return {
-        "message": "SubHouz API is running",
-        "docs": "/docs",
-        "version": "1.0.0"
-    }
+
 
 @app.get("/api")
 async def root():
