@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'hostel_admin', hostel_id: '' });
   const [hostels, setHostels] = useState([]);
   const [users, setUsers] = useState([]);
+  const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+  const [pwdChanging, setPwdChanging] = useState(false);
 
   useEffect(() => {
     api.get('/automation/whatsapp-config').then(res => setWhatsappConfig(res.data)).catch(() => {});
@@ -71,6 +73,32 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSelfChangePassword = async (e) => {
+    e.preventDefault();
+    if (!pwdForm.current_password) {
+      toast.error('Current password is required');
+      return;
+    }
+    if (!pwdForm.new_password || pwdForm.new_password.length < 6) {
+      toast.error('New password must be at least 6 characters long');
+      return;
+    }
+    if (pwdForm.new_password !== pwdForm.confirm_password) {
+      toast.error('New password and confirm password do not match');
+      return;
+    }
+    setPwdChanging(true);
+    try {
+      const res = await api.post('/auth/change-password', pwdForm);
+      toast.success(res.data.message || 'Password changed successfully');
+      setPwdForm({ current_password: '', new_password: '', confirm_password: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to change password');
+    } finally {
+      setPwdChanging(false);
+    }
+  };
+
   return (
     <div className="space-y-6" data-testid="settings-page">
       <div>
@@ -81,6 +109,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="whatsapp" className="space-y-6">
         <TabsList className="bg-[#F1F5F9]">
           <TabsTrigger value="whatsapp" data-testid="tab-whatsapp" className="text-sm">WhatsApp API</TabsTrigger>
+          <TabsTrigger value="security" data-testid="tab-security" className="text-sm">Security & Password</TabsTrigger>
           {user?.role === 'super_admin' && <TabsTrigger value="users" data-testid="tab-users" className="text-sm">User Management</TabsTrigger>}
           <TabsTrigger value="general" data-testid="tab-general" className="text-sm">General</TabsTrigger>
         </TabsList>
@@ -233,6 +262,67 @@ export default function SettingsPage() {
           </TabsContent>
         )}
 
+        <TabsContent value="security">
+          <Card className="border-[#E2E8F0] shadow-sm max-w-xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base" style={{ fontFamily: 'Outfit' }}>
+                <Shield className="w-5 h-5 text-[#1D4ED8]" /> Change Password
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSelfChangePassword} className="space-y-4">
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Current Password *</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter current password"
+                    value={pwdForm.current_password}
+                    onChange={e => setPwdForm({ ...pwdForm, current_password: e.target.value })}
+                    required
+                    className="mt-1 text-xs h-10 bg-white border-[#8C7E72]/20"
+                    data-testid="self-current-password"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">New Password *</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter new password (min 6 characters)"
+                    value={pwdForm.new_password}
+                    onChange={e => setPwdForm({ ...pwdForm, new_password: e.target.value })}
+                    required
+                    className="mt-1 text-xs h-10 bg-white border-[#8C7E72]/20"
+                    data-testid="self-new-password"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Confirm New Password *</Label>
+                  <Input
+                    type="password"
+                    placeholder="Re-enter new password"
+                    value={pwdForm.confirm_password}
+                    onChange={e => setPwdForm({ ...pwdForm, confirm_password: e.target.value })}
+                    required
+                    className="mt-1 text-xs h-10 bg-white border-[#8C7E72]/20"
+                    data-testid="self-confirm-password"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={pwdChanging}
+                  className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white rounded-xl text-xs px-6 font-semibold"
+                  data-testid="submit-self-change-pwd-btn"
+                >
+                  {pwdChanging ? 'Updating Password...' : 'Update Password'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="general">
           <Card className="border-[#E2E8F0] shadow-sm">
             <CardHeader>
@@ -252,7 +342,7 @@ export default function SettingsPage() {
               <div className="pt-4 border-t border-[#F1F5F9]">
                 <h3 className="text-sm font-semibold text-[#0F172A] mb-2">About</h3>
                 <p className="text-sm text-[#64748B]">Subhouz v1.0 — Smart Property Management Platform</p>
-                <p className="text-xs text-[#94A3B8] mt-1">Built for property owners in Bhubaneswar, Odisha</p>
+                <p className="text-xs text-[#94A3B8] mt-1">Built for property owners & rental managers across India</p>
               </div>
             </CardContent>
           </Card>

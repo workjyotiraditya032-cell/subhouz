@@ -8,111 +8,79 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = Path(__file__).parent.parent / "search_metadata.db"
 
-BHUBANESWAR_CENTER = (20.2961, 85.8245)
+INDIA_CENTER = (20.5937, 78.9629)
 
 LOCATION_PRESETS = [
-    ("Patia", 20.3588, 85.8166),
-    ("Shampur", 20.2885, 85.7766),
-    ("Mancheswar", 20.3259, 85.8672),
-    ("Patrapada", 20.2801, 85.7441),
-    ("Khandagiri", 20.2580, 85.7750),
-    ("Jaydev Vihar", 20.2970, 85.8180),
+    ("Koramangala", 12.9352, 77.6245),
+    ("Hitech City", 17.4435, 78.3772),
+    ("Hinjewadi", 18.5912, 73.7389),
+    ("Cyber City", 28.4950, 77.0895),
+    ("Velachery", 12.9796, 80.2209),
+    ("Bandra", 19.0596, 72.8295),
+    ("Indiranagar", 12.9784, 77.6408),
+    ("Gachibowli", 17.4401, 78.3489),
 ]
 
 COLLEGE_PRESETS = [
-    ("KIIT University", 20.3533, 85.8189),
-    ("ITER College", 20.2766, 85.7966),
-    ("Silicon Institute of Technology", 20.3702, 85.8078),
-    ("C. V. Raman Global University", 20.2155, 85.7355),
+    ("IISc Bengaluru", 13.0184, 77.5672),
+    ("IIT Bombay", 19.1334, 72.9133),
+    ("IIT Delhi", 28.5450, 77.1926),
+    ("IIIT Hyderabad", 17.4455, 78.3489),
+    ("Symbiosis International Pune", 18.5477, 73.7744),
 ]
 
 LANDMARK_PRESETS = [
-    ("Sikharchandi Temple", 20.3644, 85.8233),
-    ("Ranganath Temple", 20.3275, 85.8690),
-    ("Saraswati Sishu Mandir", 20.2890, 85.7790),
-    ("Khandagiri Caves", 20.2584, 85.7752),
+    ("Forum Mall Koramangala", 12.9345, 77.6113),
+    ("Cyber Towers Hyderabad", 17.4504, 78.3811),
+    ("Quadron Business Park Pune", 18.5950, 73.7320),
+    ("DLF CyberHub Gurugram", 28.4952, 77.0888),
+    ("Phoenix Marketcity Chennai", 12.9912, 80.2170),
 ]
 
 PROPERTY_COORDS_MAPPING = {
-    "Jogmaya Mansion": {
-        "lat": 20.2885,
-        "lng": 85.7766,
-        "area": "Shampur",
-        "landmark": "Saraswati Sishu Mandir",
-        "college": "ITER College",
-        "aliases": ["Jogmaya Mansion", "Jogmaya Residency", "Jogmaya Elite"],
-        "keywords": ["boys hostel", "student accommodation", "ITER PG", "pg near iter"],
-        "tags": ["boys", "student", "iter", "affordable"],
-        "facilities": ["Wi-Fi", "Food", "Parking", "CCTV", "Power Backup"],
-        "gender": "boys",
-        "property_type": "Hostel",
-        "category": "Hostel"
-    },
-    "Jogmaya Hostel": {
-        "lat": 20.2885,
-        "lng": 85.7766,
-        "area": "Shampur",
-        "landmark": "Saraswati Sishu Mandir",
-        "college": "ITER College",
-        "aliases": ["Jogmaya Mansion", "Jogmaya Residency", "Jogmaya Elite"],
-        "keywords": ["boys hostel", "student accommodation", "ITER PG", "pg near iter"],
-        "tags": ["boys", "student", "iter", "affordable"],
-        "facilities": ["Wi-Fi", "Food", "Parking", "CCTV", "Power Backup"],
-        "gender": "boys",
-        "property_type": "Hostel",
-        "category": "Hostel"
-    },
-    "Lotus Garden": {
-        "lat": 20.3588,
-        "lng": 85.8166,
-        "area": "Patia",
-        "landmark": "Sikharchandi Temple",
-        "college": "KIIT University",
-        "aliases": ["Lotus Garden PG", "Lotus Garden Stays", "Lotus Garden Elite"],
-        "keywords": ["girls hostel", "student accommodation", "KIIT PG", "pg near kiit"],
-        "tags": ["girls", "student", "kiit", "premium"],
-        "facilities": ["Wi-Fi", "Food", "Laundry", "Attached Bathroom", "AC Rooms"],
-        "gender": "girls",
-        "property_type": "PG",
-        "category": "PG"
+    "Apex Elite Co-Living": {
+        "lat": 12.9352,
+        "lng": 77.6245,
+        "area": "Koramangala",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "landmark": "Forum Mall Koramangala",
+        "college": "IISc Bengaluru",
+        "aliases": ["Apex Elite", "Apex Co-Living Koramangala"],
+        "keywords": ["co-living stay", "student housing", "bengaluru pg", "koramangala stay"],
+        "tags": ["co-ed", "professional", "bengaluru", "premium"],
+        "facilities": ["Wi-Fi", "Food", "Gym Access", "CCTV", "Power Backup"],
+        "gender": "mixed",
+        "property_type": "Co-Living",
+        "category": "Co-Living"
     },
     "Homely Havens Girls PG": {
-        "lat": 20.3588,
-        "lng": 85.8166,
-        "area": "Patia",
-        "landmark": "Sikharchandi Temple",
-        "college": "KIIT University",
-        "aliases": ["Homely Havens PG", "Homely Havens Residency", "Homely Havens Elite"],
-        "keywords": ["girls hostel", "student accommodation", "KIIT PG", "pg near kiit"],
-        "tags": ["girls", "student", "kiit", "premium"],
+        "lat": 17.4435,
+        "lng": 78.3772,
+        "area": "Hitech City",
+        "city": "Hyderabad",
+        "state": "Telangana",
+        "landmark": "Cyber Towers",
+        "college": "IIIT Hyderabad",
+        "aliases": ["Homely Havens PG", "Homely Havens Hitech City"],
+        "keywords": ["girls hostel", "student accommodation", "hyderabad pg", "pg near hitech city"],
+        "tags": ["girls", "student", "hyderabad", "premium"],
         "facilities": ["Wi-Fi", "Food", "Laundry", "Attached Bathroom", "AC Rooms"],
         "gender": "girls",
         "property_type": "PG",
         "category": "PG"
     },
-    "Mixed Dormitory": {
-        "lat": 20.3259,
-        "lng": 85.8672,
-        "area": "Mancheswar",
-        "landmark": "Ranganath Temple",
-        "college": "C. V. Raman Global University",
-        "aliases": ["Mixed Dormitory PG", "Mixed Stay"],
-        "keywords": ["mixed hostel", "co-ed stay", "C. V. Raman PG", "mancheswar stay"],
-        "tags": ["co-ed", "mixed", "industrial", "spacious"],
-        "facilities": ["Wi-Fi", "Gym Access", "Food", "Parking", "CCTV"],
-        "gender": "mixed",
-        "property_type": "Hostel",
-        "category": "Residency"
-    },
-    "GopalSarojini (GS) Residency": {
-        "lat": 20.3259,
-        "lng": 85.8672,
-        "area": "Mancheswar",
-        "landmark": "Ranganath Temple",
-        "college": "C. V. Raman Global University",
-        "aliases": ["GS Residency", "GopalSarojini PG"],
-        "keywords": ["mixed hostel", "co-ed stay", "C. V. Raman PG", "mancheswar stay"],
-        "tags": ["co-ed", "mixed", "industrial", "spacious"],
+    "Grand Horizon Stays": {
+        "lat": 18.5912,
+        "lng": 73.7389,
+        "area": "Hinjewadi",
+        "city": "Pune",
+        "state": "Maharashtra",
+        "landmark": "Quadron Business Park",
+        "college": "Symbiosis International Pune",
+        "aliases": ["Grand Horizon PG", "Grand Horizon Hinjewadi"],
+        "keywords": ["mixed hostel", "co-ed stay", "pune pg", "hinjewadi stay"],
+        "tags": ["co-ed", "mixed", "pune", "spacious"],
         "facilities": ["Wi-Fi", "Gym Access", "Food", "Parking", "CCTV"],
         "gender": "mixed",
         "property_type": "Hostel",
@@ -239,11 +207,11 @@ async def init_search_db(supabase_client=None):
                 name = h.get("name", "")
                 
                 mapped = PROPERTY_COORDS_MAPPING.get(name) or {
-                    "lat": BHUBANESWAR_CENTER[0],
-                    "lng": BHUBANESWAR_CENTER[1],
-                    "area": "Bhubaneswar",
-                    "landmark": "Bhubaneswar Landmark",
-                    "college": "Bhubaneswar College",
+                    "lat": INDIA_CENTER[0],
+                    "lng": INDIA_CENTER[1],
+                    "area": "Central",
+                    "landmark": "City Center",
+                    "college": "University Hub",
                     "aliases": [],
                     "keywords": [],
                     "tags": [],
@@ -256,9 +224,9 @@ async def init_search_db(supabase_client=None):
                 record = {
                     "name": name,
                     "address": h.get("address", mapped.get("address", "")),
-                    "area": mapped["area"],
-                    "city": h.get("city", "Bhubaneswar"),
-                    "state": h.get("state", "Odisha"),
+                    "area": mapped.get("area", "Central"),
+                    "city": h.get("city", mapped.get("city", "Bengaluru")),
+                    "state": h.get("state", mapped.get("state", "Karnataka")),
                     "country": "India",
                     "latitude": mapped["lat"],
                     "longitude": mapped["lng"],
@@ -313,7 +281,7 @@ def save_or_update_property_metadata(hostel_id: str, name: str, address: str, ci
         
         latitude = updates.get("latitude") if updates.get("latitude") is not None else existing_dict["latitude"]
         longitude = updates.get("longitude") if updates.get("longitude") is not None else existing_dict["longitude"]
-        area = updates.get("area") or existing_dict["area"] or "Bhubaneswar"
+        area = updates.get("area") or existing_dict["area"] or "Central"
         country = updates.get("country") or existing_dict["country"] or "India"
         
         nearby_colleges = json.dumps(updates.get("nearby_colleges")) if updates.get("nearby_colleges") is not None else existing_dict["nearby_colleges"]
@@ -331,20 +299,20 @@ def save_or_update_property_metadata(hostel_id: str, name: str, address: str, ci
         gender = updates.get("gender") or updates.get("hostel_type") or existing_dict["gender"] or "mixed"
     else:
         mapped = PROPERTY_COORDS_MAPPING.get(name) or {
-            "lat": BHUBANESWAR_CENTER[0],
-            "lng": BHUBANESWAR_CENTER[1],
-            "area": "Bhubaneswar",
-            "landmark": "Bhubaneswar Landmark",
-            "college": "Bhubaneswar College"
+            "lat": INDIA_CENTER[0],
+            "lng": INDIA_CENTER[1],
+            "area": "Central",
+            "landmark": "City Center",
+            "college": "University Hub"
         }
         latitude = updates.get("latitude") if updates.get("latitude") is not None else mapped["lat"]
         longitude = updates.get("longitude") if updates.get("longitude") is not None else mapped["lng"]
         area = updates.get("area") or mapped["area"]
         country = updates.get("country") or "India"
         
-        nearby_colleges = json.dumps(updates.get("nearby_colleges") or [mapped.get("college", "Bhubaneswar College")])
+        nearby_colleges = json.dumps(updates.get("nearby_colleges") or [mapped.get("college", "University Hub")])
         nearby_schools = json.dumps(updates.get("nearby_schools") or [])
-        nearby_landmarks = json.dumps(updates.get("nearby_landmarks") or [mapped.get("landmark", "Bhubaneswar Landmark")])
+        nearby_landmarks = json.dumps(updates.get("nearby_landmarks") or [mapped.get("landmark", "City Center")])
         nearby_metro = json.dumps(updates.get("nearby_metro") or [])
         nearby_bus_stop = json.dumps(updates.get("nearby_bus_stop") or [])
         aliases = json.dumps(updates.get("aliases") or [])

@@ -169,7 +169,7 @@ export default function SearchResults() {
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold text-slate-800">No properties found near this location.</h3>
                   <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                    Try searching for key institutions (e.g. KIIT, ITER), alias codes (e.g. JMH, HHG), gender types, or popular regions.
+                    Try searching for major cities (e.g. Bengaluru, Hyderabad, Pune, Mumbai), key institutions, property codes, or popular regions.
                   </p>
                 </div>
 
@@ -177,7 +177,7 @@ export default function SearchResults() {
                 <div className="space-y-3">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Popular Areas</span>
                   <div className="flex flex-wrap gap-1.5 justify-center">
-                    {['Patia', 'Shampur', 'Mancheswar'].map((area) => (
+                    {['Koramangala', 'Hitech City', 'Hinjewadi', 'Cyber City'].map((area) => (
                       <button
                         key={area}
                         onClick={() => handleNearbySearch(area)}

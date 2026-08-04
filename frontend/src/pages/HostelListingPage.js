@@ -31,57 +31,58 @@ const FACILITY_ICONS = {
 };
 
 const PROPERTY_METADATA = {
-  'Jogmaya Mansion': {
-    lat: 20.2885,
-    lng: 85.7766,
-    area: 'Shampur',
-    colleges: ['ITER College'],
-    landmarks: ['Saraswati Sishu Mandir'],
-  },
-  'Jogmaya Hostel': {
-    lat: 20.2885,
-    lng: 85.7766,
-    area: 'Shampur',
-    colleges: ['ITER College'],
-    landmarks: ['Saraswati Sishu Mandir'],
-  },
-  'Lotus Garden': {
-    lat: 20.3588,
-    lng: 85.8166,
-    area: 'Patia',
-    colleges: ['KIIT University', 'Silicon Institute of Technology'],
-    landmarks: ['Sikharchandi Temple'],
+  'Apex Elite Co-Living': {
+    lat: 12.9352,
+    lng: 77.6245,
+    area: 'Koramangala',
+    city: 'Bengaluru',
+    colleges: ['IISc Bengaluru', 'Christ University'],
+    landmarks: ['Forum Mall Koramangala'],
   },
   'Homely Havens Girls PG': {
-    lat: 20.3588,
-    lng: 85.8166,
-    area: 'Patia',
-    colleges: ['KIIT University', 'Silicon Institute of Technology'],
-    landmarks: ['Sikharchandi Temple'],
+    lat: 17.4435,
+    lng: 78.3772,
+    area: 'Hitech City',
+    city: 'Hyderabad',
+    colleges: ['IIIT Hyderabad', 'ISB Hyderabad'],
+    landmarks: ['Cyber Towers'],
   },
-  'Mixed Dormitory': {
-    lat: 20.3259,
-    lng: 85.8672,
-    area: 'Mancheswar',
-    colleges: ['C. V. Raman Global University'],
-    landmarks: ['Ranganath Temple'],
+  'Grand Horizon Stays': {
+    lat: 18.5912,
+    lng: 73.7389,
+    area: 'Hinjewadi',
+    city: 'Pune',
+    colleges: ['Symbiosis International', 'I2IT Pune'],
+    landmarks: ['Quadron Business Park'],
   },
-  'GopalSarojini (GS) Residency': {
-    lat: 20.3259,
-    lng: 85.8672,
-    area: 'Mancheswar',
-    colleges: ['C. V. Raman Global University'],
-    landmarks: ['Ranganath Temple'],
+  'Skyline Luxury PG': {
+    lat: 28.4950,
+    lng: 77.0895,
+    area: 'Cyber City',
+    city: 'Gurugram',
+    colleges: ['MDI Gurugram'],
+    landmarks: ['DLF CyberHub'],
+  },
+  'Coastal Breeze Stays': {
+    lat: 12.9796,
+    lng: 80.2209,
+    area: 'Velachery',
+    city: 'Chennai',
+    colleges: ['IIT Madras', 'Anna University'],
+    landmarks: ['Phoenix Marketcity'],
   }
 };
 
 const AREA_COORDINATES = {
-  'patia': [20.3588, 85.8166],
-  'shampur': [20.2885, 85.7766],
-  'mancheswar': [20.3259, 85.8672],
-  'patrapada': [20.2885, 85.7766],
-  'khandagiri': [20.2580, 85.7750],
-  'jaydev vihar': [20.2970, 85.8180],
+  'koramangala': [12.9352, 77.6245],
+  'indiranagar': [12.9784, 77.6408],
+  'hitech city': [17.4435, 78.3772],
+  'gachibowli': [17.4401, 78.3489],
+  'hinjewadi': [18.5912, 73.7389],
+  'viman nagar': [18.5679, 73.9143],
+  'cyber city': [28.4950, 77.0895],
+  'bandra': [19.0596, 72.8295],
+  'velachery': [12.9796, 80.2209],
 };
 
 const getPropertyCoords = (hostel) => {
@@ -269,9 +270,9 @@ export default function HostelListingPage() {
 
     const L = window.L;
 
-    // Center on Bhubaneswar default
-    let center = [20.2961, 85.8245];
-    let zoom = 12;
+    // Center on India center default
+    let center = [20.5937, 78.9629];
+    let zoom = 5;
 
     const q = searchQuery.trim().toLowerCase();
     if (q) {
@@ -402,7 +403,7 @@ export default function HostelListingPage() {
             Find Your Perfect Stay
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="text-[#A39889] text-base sm:text-lg max-w-2xl leading-relaxed">
-            Explore our carefully curated stays in Bhubaneswar. Each property offers a unique blend of comfort, convenience, and community.
+            Explore verified PGs, hostels, co-living spaces, and rental apartments across major Indian cities. Each property offers a unique blend of comfort, security, and community.
           </motion.p>
           <motion.div 
             initial={{ opacity: 0, y: 12 }} 
@@ -715,7 +716,7 @@ export default function HostelListingPage() {
               </div>
             )}
             <span className="text-white text-sm font-semibold" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
-            <span className="text-xs text-[#6B5E54] ml-1">Bhubaneswar, Odisha</span>
+            <span className="text-xs text-[#6B5E54] ml-1">India</span>
           </div>
           <div className="flex items-center gap-6">
             <p className="text-xs text-[#4A4340]">&copy; {new Date().getFullYear()} Subhouz</p>

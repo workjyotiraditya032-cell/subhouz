@@ -34,10 +34,10 @@ export default function RentTrackerPage() {
 
   useEffect(() => { fetchTracker(); }, [fetchTracker]);
 
-  const handleMarkPaid = async (residentId, name) => {
+  const handleMarkPaid = async (residentId, name, amount) => {
     setMarking(residentId);
     try {
-      const res = await api.post(`/rent/mark-paid/${residentId}?month=${month}&year=${year}`, { payment_mode: 'cash' });
+      const res = await api.post(`/rent/mark-paid/${residentId}?month=${month}&year=${year}`, { payment_mode: 'cash', amount: amount });
       toast.success(`Rent marked paid for ${name}`, { description: `Receipt: ${res.data.receipt_number}` });
       fetchTracker();
     } catch (err) {
@@ -168,7 +168,7 @@ export default function RentTrackerPage() {
                         size="sm"
                         className={`h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm ${marking === entry.resident_id ? 'opacity-50' : ''}`}
                         disabled={marking === entry.resident_id}
-                        onClick={() => handleMarkPaid(entry.resident_id, entry.name)}
+                        onClick={() => handleMarkPaid(entry.resident_id, entry.name, entry.monthly_rent)}
                         data-testid={`mark-paid-${entry.resident_id}`}
                       >
                         {marking === entry.resident_id ? (

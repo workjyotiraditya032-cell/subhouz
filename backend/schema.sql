@@ -25,8 +25,8 @@ CREATE TABLE hostels (
     name TEXT NOT NULL,
     code TEXT NOT NULL UNIQUE,
     address TEXT NOT NULL,
-    city TEXT NOT NULL DEFAULT 'Bhubaneswar',
-    state TEXT NOT NULL DEFAULT 'Odisha',
+    city TEXT NOT NULL DEFAULT 'Bengaluru',
+    state TEXT NOT NULL DEFAULT 'Karnataka',
     phone TEXT,
     email TEXT,
     description TEXT,
@@ -57,6 +57,9 @@ CREATE TABLE users (
     phone TEXT,
     avatar TEXT,
     disabled BOOLEAN DEFAULT FALSE,
+    sec_school_hash TEXT,
+    sec_mother_hash TEXT,
+    sec_father_hash TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -74,7 +77,8 @@ CREATE TABLE rooms (
     occupied INTEGER NOT NULL DEFAULT 0,
     rent NUMERIC NOT NULL DEFAULT 0,
     electricity_rate NUMERIC NOT NULL DEFAULT 8.0,
-    has_bathroom BOOLEAN NOT NULL DEFAULT TRUE,
+    has_bathroom BOOLEAN NOT NULL DEFAULT FALSE,
+    has_attached_bathroom BOOLEAN NOT NULL DEFAULT FALSE,
     has_balcony BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'available', -- available, occupied, reserved, maintenance
     amenities TEXT[] DEFAULT '{}',

@@ -157,32 +157,34 @@ export default function SearchBar({ placeholder = "Search by Area, Landmark, Col
   return (
     <div ref={containerRef} className="relative w-full max-w-3xl mx-auto z-50">
       {/* Search Input Container */}
-      <div className="relative flex items-center bg-white/95 backdrop-blur-md rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-slate-100 hover:border-emerald-500/30 transition-all duration-300 group overflow-hidden">
-        <div className="pl-6 text-slate-400 group-hover:text-emerald-600 transition-colors">
-          <Search className="w-5 h-5 stroke-[2.5]" />
+      <div className="relative flex flex-col md:flex-row items-stretch md:items-center bg-white/95 backdrop-blur-md rounded-2xl md:rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-slate-100 hover:border-emerald-500/30 transition-all duration-300 group overflow-hidden p-2 md:p-0 gap-2 md:gap-0">
+        <div className="flex items-center w-full md:flex-1">
+          <div className="pl-4 md:pl-6 text-slate-400 group-hover:text-emerald-600 transition-colors">
+            <Search className="w-5 h-5 stroke-[2.5]" />
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            className="w-full py-3 md:py-4.5 px-3 md:px-4 text-slate-800 placeholder-slate-400/80 bg-transparent outline-none font-semibold text-[15px] leading-normal"
+          />
+          {searchQuery && (
+            <button
+              onClick={handleClear}
+              className="p-2 mr-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-all"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
         </div>
-        <input
-          ref={inputRef}
-          type="text"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setIsOpen(true);
-          }}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          className="w-full py-4.5 px-4 text-slate-800 placeholder-slate-400/80 bg-transparent outline-none font-semibold text-[15px] leading-normal"
-        />
-        {searchQuery && (
-          <button
-            onClick={handleClear}
-            className="p-2 mr-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-all"
-          >
-            <X className="w-4 h-4 stroke-[2.5]" />
-          </button>
-        )}
         <button
           onClick={() => {
             if (searchQuery.trim()) {
@@ -191,7 +193,7 @@ export default function SearchBar({ placeholder = "Search by Area, Landmark, Col
               navigate(`/search?location=${encodeURIComponent(searchQuery)}`);
             }
           }}
-          className="mr-2 px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-full text-sm transition-all shadow-md active:scale-95"
+          className="w-full md:w-auto md:mr-2 px-6 py-4 md:py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl md:rounded-full text-base md:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center h-[52px] md:h-auto"
         >
           Search
         </button>

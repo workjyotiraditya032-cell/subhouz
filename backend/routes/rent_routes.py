@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/rent", tags=["rent"])
 
 class MarkPaidRequest(BaseModel):
     payment_mode: Optional[str] = "cash"
+    amount: Optional[float] = None
     notes: Optional[str] = None
     transaction_id: Optional[str] = None
     balance: Optional[float] = 0.0
@@ -60,6 +61,8 @@ async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(No
         elif now.day > due_date and target_month == now.month and target_year == now.year:
             status = "overdue"
             
+        paid_amount = float(payment.get("amount")) if (payment and payment.get("amount") is not None) else float(r.get("monthly_rent", 0))
+
         entry = {
             "resident_id": r_id,
             "name": r.get("name", ""),
@@ -68,7 +71,8 @@ async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(No
             "room_number": r.get("room_number", ""),
             "bed_number": r.get("bed_number", ""),
             "hostel_id": r.get("hostel_id", ""),
-            "monthly_rent": r.get("monthly_rent", 0),
+            "monthly_rent": float(r.get("monthly_rent", 0)),
+            "paid_amount": paid_amount,
             "due_date": due_date,
             "month": target_month,
             "year": target_year,
@@ -92,7 +96,7 @@ async def get_rent_tracker(request: Request, hostel_id: Optional[str] = Query(No
             "pending": sum(1 for e in result if e["status"] == "pending"),
             "overdue": sum(1 for e in result if e["status"] == "overdue"),
             "total_expected": sum(e["monthly_rent"] for e in result),
-            "total_collected": sum(e["monthly_rent"] for e in result if e["status"] == "paid"),
+            "total_collected": sum(e["paid_amount"] for e in result if e["status"] == "paid"),
         }
     }
 
@@ -130,7 +134,9 @@ async def mark_rent_paid(resident_id: str, request: Request, req: MarkPaidReques
     # Check if payment already exists
     res_existing = await db.table("rent_payments").select("*").eq("resident_id", res_uuid).eq("month", target_month).eq("year", target_year).execute()
     existing = res_existing.data[0] if res_existing.data else None
-    
+
+    actual_amount = float(req.amount) if (req.amount is not None and req.amount > 0) else float(resident.get("monthly_rent", 0))
+
     payment_data = {
         "status": "paid",
         "paid_on": now.isoformat(),
@@ -139,6 +145,7 @@ async def mark_rent_paid(resident_id: str, request: Request, req: MarkPaidReques
         "notes": req.notes,
         "transaction_id": req.transaction_id,
         "balance": req.balance or 0.0,
+        "amount": actual_amount,
         "marked_by": parse_uuid(user["id"]),
         "updated_at": now.isoformat()
     }
@@ -155,7 +162,7 @@ async def mark_rent_paid(resident_id: str, request: Request, req: MarkPaidReques
             "bed_number": resident.get("bed_number"),
             "month": target_month,
             "year": target_year,
-            "amount": resident.get("monthly_rent", 0),
+            "amount": actual_amount,
             "created_at": now.isoformat()
         })
         res_insert = await db.table("rent_payments").insert(payment_data).execute()

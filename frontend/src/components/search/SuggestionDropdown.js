@@ -99,7 +99,7 @@ export default function SuggestionDropdown({
                     <span className="text-sm font-semibold truncate">{item.name}</span>
                   </div>
                   <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide shrink-0">
-                    {item.type === 'properties' ? 'View PG' : item.type === 'colleges' ? 'Near Stays' : 'Bhubaneswar'}
+                    {item.type === 'properties' ? 'View PG' : item.type === 'colleges' ? 'Near Stays' : 'India'}
                   </span>
                 </button>
               </div>

@@ -185,7 +185,7 @@ export default function SearchListingPage() {
                 <div className="space-y-3">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Popular Near Stays</span>
                   <div className="flex flex-wrap gap-1.5 justify-center">
-                    {['Patia', 'Shampur', 'Mancheswar'].map((area) => (
+                    {['Koramangala', 'Hitech City', 'Hinjewadi', 'Cyber City'].map((area) => (
                       <button
                         key={area}
                         onClick={() => handleNearbySearch(area)}

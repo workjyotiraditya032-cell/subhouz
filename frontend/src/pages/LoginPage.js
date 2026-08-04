@@ -8,6 +8,7 @@ import { Label } from '../components/ui/label';
 import { useAuth } from '../contexts/AuthContext';
 import { formatApiError } from '../lib/api';
 import { useWebsiteImage } from '../hooks/useWebsiteImages';
+import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -90,7 +92,17 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-sm text-slate-300">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-slate-300">Password</Label>
+                <button
+                  type="button"
+                  onClick={() => setForgotModalOpen(true)}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+                  data-testid="forgot-password-link"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   data-testid="login-password-input"
@@ -138,6 +150,12 @@ export default function LoginPage() {
         <button onClick={() => navigate('/')} className="mt-6 text-sm text-slate-500 hover:text-slate-300 transition-colors block mx-auto">
           &larr; Back to home
         </button>
+
+        {/* Forgot Password Modal */}
+        <ForgotPasswordModal
+          open={forgotModalOpen}
+          onClose={() => setForgotModalOpen(false)}
+        />
       </motion.div>
     </div>
   );

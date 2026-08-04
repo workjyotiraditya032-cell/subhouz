@@ -14,8 +14,8 @@ class HostelCreate(BaseModel):
     name: str
     code: str
     address: str
-    city: str = "Bhubaneswar"
-    state: str = "Odisha"
+    city: str = "Bengaluru"
+    state: str = "Karnataka"
     phone: Optional[str] = None
     email: Optional[str] = None
     description: Optional[str] = None
@@ -105,7 +105,7 @@ async def list_hostels_public():
         
         facilities = ["Wi-Fi", "Water Purifier", "24/7 Security", "CCTV", "Power Backup"]
         has_ac = any(r.get("ac_type") == "ac" for r in rooms)
-        has_bathroom = any(r.get("has_bathroom") for r in rooms)
+        has_bathroom = any(r.get("has_attached_bathroom") or r.get("hasAttachedBathroom") or r.get("has_bathroom") for r in rooms)
         has_balcony = any(r.get("has_balcony") for r in rooms)
         if has_ac:
             facilities.append("AC Rooms")
@@ -126,9 +126,9 @@ async def list_hostels_public():
         review_count = int(h.get("review_count") or 0)
 
         meta = get_property_metadata(h_id) or {}
-        lat = meta.get("latitude") if meta.get("latitude") is not None else 20.2961
-        lng = meta.get("longitude") if meta.get("longitude") is not None else 85.8245
-        area = meta.get("area") or "Bhubaneswar"
+        lat = meta.get("latitude") if meta.get("latitude") is not None else 20.5937
+        lng = meta.get("longitude") if meta.get("longitude") is not None else 78.9629
+        area = meta.get("area") or "Central"
         landmark = meta.get("nearby_landmarks") or meta.get("landmark") or ""
         college = meta.get("nearby_colleges") or meta.get("college") or ""
 
@@ -137,8 +137,8 @@ async def list_hostels_public():
             "name": h.get("name", ""),
             "code": h.get("code", ""),
             "address": h.get("address", ""),
-            "city": h.get("city", "Bhubaneswar"),
-            "state": h.get("state", "Odisha"),
+            "city": h.get("city", "Bengaluru"),
+            "state": h.get("state", "Karnataka"),
             "phone": h.get("phone", ""),
             "email": h.get("email", ""),
             "description": h.get("description", ""),
@@ -184,7 +184,17 @@ async def get_hostel_public(hostel_id: str):
         
         res_bed_avail = await db.table("beds").select("id", count="exact").eq("room_id", r_id).eq("status", "available").execute()
         bed_available = res_bed_avail.count or 0
+        bed_occupied = max(0, bed_total - bed_available)
         
+        if bed_total == 0:
+            computed_status = "unavailable"
+        elif bed_occupied == 0:
+            computed_status = "available"
+        elif 0 < bed_occupied < bed_total:
+            computed_status = "partially_occupied"
+        else:
+            computed_status = "occupied"
+
         room_list.append({
             "id": r_id,
             "room_number": r.get("room_number"),
@@ -194,11 +204,14 @@ async def get_hostel_public(hostel_id: str):
             "ac_type": r.get("ac_type"),
             "capacity": r.get("capacity"),
             "rent": r.get("rent"),
-            "has_bathroom": r.get("has_bathroom"),
+            "has_bathroom": bool(r.get("has_attached_bathroom") if r.get("has_attached_bathroom") is not None else r.get("has_bathroom", False)),
+            "has_attached_bathroom": bool(r.get("has_attached_bathroom") or r.get("hasAttachedBathroom") or r.get("has_bathroom") or False),
+            "hasAttachedBathroom": bool(r.get("has_attached_bathroom") or r.get("hasAttachedBathroom") or r.get("has_bathroom") or False),
             "has_balcony": r.get("has_balcony"),
-            "status": r.get("status"),
+            "status": computed_status,
             "amenities": r.get("amenities", []),
             "total_beds": bed_total,
+            "occupied_beds": bed_occupied,
             "available_beds": bed_available,
         })
 
@@ -214,7 +227,7 @@ async def get_hostel_public(hostel_id: str):
     facilities = ["Wi-Fi", "Water Purifier", "24/7 Security", "CCTV", "Power Backup"]
     if any(r["ac_type"] == "ac" for r in room_list):
         facilities.append("AC Rooms")
-    if any(r["has_bathroom"] for r in room_list):
+    if any(r.get("has_attached_bathroom") or r.get("hasAttachedBathroom") or r.get("has_bathroom") for r in room_list):
         facilities.append("Attached Bathroom")
     if any(r["has_balcony"] for r in room_list):
         facilities.append("Balcony Rooms")
@@ -228,9 +241,9 @@ async def get_hostel_public(hostel_id: str):
     review_count = int(hostel.get("review_count") or 0)
 
     meta = get_property_metadata(h_id) or {}
-    lat = meta.get("latitude") if meta.get("latitude") is not None else 20.2961
-    lng = meta.get("longitude") if meta.get("longitude") is not None else 85.8245
-    area = meta.get("area") or "Bhubaneswar"
+    lat = meta.get("latitude") if meta.get("latitude") is not None else 20.5937
+    lng = meta.get("longitude") if meta.get("longitude") is not None else 78.9629
+    area = meta.get("area") or "Central"
     landmark = meta.get("nearby_landmarks") or meta.get("landmark") or ""
     college = meta.get("nearby_colleges") or meta.get("college") or ""
 

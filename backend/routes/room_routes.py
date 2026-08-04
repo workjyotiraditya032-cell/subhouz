@@ -17,7 +17,9 @@ class RoomCreate(BaseModel):
     capacity: int = 1
     rent: float = 0
     electricity_rate: float = 8.0
-    has_bathroom: bool = True
+    has_bathroom: bool = False
+    has_attached_bathroom: bool = False
+    hasAttachedBathroom: Optional[bool] = None
     has_balcony: bool = False
     amenities: list = []
 
@@ -31,12 +33,34 @@ class RoomUpdate(BaseModel):
     rent: Optional[float] = None
     electricity_rate: Optional[float] = None
     has_bathroom: Optional[bool] = None
+    has_attached_bathroom: Optional[bool] = None
+    hasAttachedBathroom: Optional[bool] = None
     has_balcony: Optional[bool] = None
     status: Optional[str] = None
     amenities: Optional[list] = None
 
+def compute_room_status(occupied: int, total_beds: int) -> str:
+    if total_beds == 0:
+        return "unavailable"
+    if occupied == 0:
+        return "available"
+    if 0 < occupied < total_beds:
+        return "partially_occupied"
+    if occupied >= total_beds:
+        return "occupied"
+    return "available"
+
+def format_room(r: dict) -> dict:
+    r["_id"] = str(r["id"])
+    r["id"] = r["_id"]
+    attached = bool(r.get("has_attached_bathroom") if r.get("has_attached_bathroom") is not None else r.get("has_bathroom"))
+    r["has_attached_bathroom"] = attached
+    r["hasAttachedBathroom"] = attached
+    r["has_bathroom"] = attached
+    return r
+
 @router.get("")
-async def list_rooms(request: Request, hostel_id: Optional[str] = Query(None)):
+async def list_rooms(request: Request, hostel_id: Optional[str] = Query(None), has_attached_bathroom: Optional[bool] = Query(None)):
     db = get_db()
     user = await get_current_user(request, db)
     
@@ -49,9 +73,9 @@ async def list_rooms(request: Request, hostel_id: Optional[str] = Query(None)):
     res_rooms = await q.execute()
     rooms = res_rooms.data
     
+    formatted_rooms = []
     for r in rooms:
-        r["_id"] = str(r["id"])
-        r["id"] = r["_id"]
+        format_room(r)
         
         # Count occupied beds
         res_occ = await db.table("beds").select("id", count="exact").eq("room_id", r["id"]).eq("status", "occupied").execute()
@@ -60,8 +84,18 @@ async def list_rooms(request: Request, hostel_id: Optional[str] = Query(None)):
         # Count total beds
         res_tb = await db.table("beds").select("id", count="exact").eq("room_id", r["id"]).execute()
         r["total_beds"] = res_tb.count or 0
+        r["available_beds"] = max(0, r["total_beds"] - r["occupied"])
         
-    return rooms
+        # Compute dynamic status
+        r["status"] = compute_room_status(r["occupied"], r["total_beds"])
+        
+        if has_attached_bathroom is not None:
+            if r["has_attached_bathroom"] == has_attached_bathroom:
+                formatted_rooms.append(r)
+        else:
+            formatted_rooms.append(r)
+        
+    return formatted_rooms
 
 @router.get("/{room_id}")
 async def get_room(room_id: str, request: Request):
@@ -77,8 +111,7 @@ async def get_room(room_id: str, request: Request):
     if user["role"] == "hostel_admin" and user.get("hostel_id") != room.get("hostel_id"):
         raise HTTPException(status_code=403, detail="Access denied")
         
-    room["_id"] = str(room["id"])
-    room["id"] = room["_id"]
+    format_room(room)
     
     res_beds = await db.table("beds").select("*").eq("room_id", room_uuid).execute()
     beds = res_beds.data
@@ -87,6 +120,13 @@ async def get_room(room_id: str, request: Request):
         b["id"] = b["_id"]
         
     room["beds"] = beds
+
+    res_occ = await db.table("beds").select("id", count="exact").eq("room_id", room_uuid).eq("status", "occupied").execute()
+    room["occupied"] = res_occ.count or 0
+    room["total_beds"] = len(beds)
+    room["available_beds"] = max(0, room["total_beds"] - room["occupied"])
+    room["status"] = compute_room_status(room["occupied"], room["total_beds"])
+
     return room
 
 @router.post("")
@@ -96,7 +136,11 @@ async def create_room(req: RoomCreate, request: Request):
     if user["role"] == "hostel_admin" and user.get("hostel_id") != req.hostel_id:
         raise HTTPException(status_code=403, detail="Access denied")
         
+    attached_val = req.hasAttachedBathroom if req.hasAttachedBathroom is not None else (req.has_attached_bathroom or req.has_bathroom or False)
     doc = req.model_dump()
+    doc.pop("hasAttachedBathroom", None)
+    doc.pop("has_attached_bathroom", None)
+    doc["has_bathroom"] = attached_val
     doc["hostel_id"] = parse_uuid(req.hostel_id)
     doc["status"] = "available"
     doc["occupied"] = 0
@@ -108,8 +152,7 @@ async def create_room(req: RoomCreate, request: Request):
         
     inserted_doc = res_insert.data[0]
     room_id = str(inserted_doc["id"])
-    inserted_doc["_id"] = room_id
-    inserted_doc["id"] = room_id
+    format_room(inserted_doc)
     
     # Auto-create beds
     for i in range(1, req.capacity + 1):
@@ -133,15 +176,62 @@ async def update_room(room_id: str, req: RoomUpdate, request: Request):
     user = await get_current_user(request, db)
     
     room_uuid = parse_uuid(room_id)
+    attached_val = req.hasAttachedBathroom if req.hasAttachedBathroom is not None else (req.has_attached_bathroom if req.has_attached_bathroom is not None else req.has_bathroom)
+    
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    updates.pop("hasAttachedBathroom", None)
+    updates.pop("has_attached_bathroom", None)
+    if attached_val is not None:
+        updates["has_bathroom"] = attached_val
     
     res_update = await db.table("rooms").update(updates).eq("id", room_uuid).execute()
     if not res_update.data:
         raise HTTPException(status_code=404, detail="Room not found")
         
     room = res_update.data[0]
-    room["_id"] = str(room["id"])
-    room["id"] = room["_id"]
+    format_room(room)
+
+    # Sync beds table if capacity or rent changed
+    if req.capacity is not None or req.rent is not None:
+        res_beds = await db.table("beds").select("*").eq("room_id", room_uuid).execute()
+        existing_beds = res_beds.data or []
+        current_count = len(existing_beds)
+
+        if req.rent is not None:
+            await db.table("beds").update({"monthly_rent": req.rent}).eq("room_id", room_uuid).eq("status", "available").execute()
+
+        if req.capacity is not None:
+            new_capacity = req.capacity
+            if new_capacity > current_count:
+                hostel_id = room.get("hostel_id")
+                for i in range(current_count + 1, new_capacity + 1):
+                    bed_doc = {
+                        "hostel_id": parse_uuid(str(hostel_id)) if hostel_id else None,
+                        "room_id": room_uuid,
+                        "bed_number": f"B{i}",
+                        "status": "available",
+                        "resident_id": None,
+                        "monthly_rent": req.rent if req.rent is not None else room.get("rent", 0),
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    await db.table("beds").insert(bed_doc).execute()
+            elif new_capacity < current_count:
+                excess = current_count - new_capacity
+                available_beds = [b for b in existing_beds if b.get("status") == "available"]
+                available_beds.sort(key=lambda b: b.get("bed_number", ""), reverse=True)
+                to_delete = available_beds[:excess]
+                for b in to_delete:
+                    b_uuid = parse_uuid(str(b["id"]))
+                    await db.table("beds").delete().eq("id", b_uuid).execute()
+
+    # Recalculate occupied & total_beds counts
+    res_occ = await db.table("beds").select("id", count="exact").eq("room_id", room_uuid).eq("status", "occupied").execute()
+    res_tb = await db.table("beds").select("id", count="exact").eq("room_id", room_uuid).execute()
+    room["occupied"] = res_occ.count or 0
+    room["total_beds"] = res_tb.count or 0
+    room["available_beds"] = max(0, room["total_beds"] - room["occupied"])
+    room["status"] = compute_room_status(room["occupied"], room["total_beds"])
+
     return room
 
 @router.delete("/{room_id}")

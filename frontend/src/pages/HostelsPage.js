@@ -16,7 +16,7 @@ export default function HostelsPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', code: '', address: '', city: 'Bhubaneswar', state: 'Odisha', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 });
+  const [form, setForm] = useState({ name: '', code: '', address: '', city: '', state: '', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 });
 
   const fetchHostels = () => {
     api.get('/hostels').then(res => setHostels(res.data)).catch(console.error).finally(() => setLoading(false));
@@ -34,7 +34,7 @@ export default function HostelsPage() {
       }
       setDialogOpen(false);
       setEditing(null);
-      setForm({ name: '', code: '', address: '', city: 'Bhubaneswar', state: 'Odisha', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 });
+      setForm({ name: '', code: '', address: '', city: '', state: '', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 });
       fetchHostels();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error saving hostel');
@@ -43,7 +43,7 @@ export default function HostelsPage() {
 
   const handleEdit = (h) => {
     setEditing(h.id);
-    setForm({ name: h.name, code: h.code, address: h.address, city: h.city || 'Bhubaneswar', state: h.state || 'Odisha', phone: h.phone || '', email: h.email || '', description: h.description || '', hostel_type: h.hostel_type || 'mixed', monthly_due_date: h.monthly_due_date || 5 });
+    setForm({ name: h.name, code: h.code, address: h.address, city: h.city || '', state: h.state || '', phone: h.phone || '', email: h.email || '', description: h.description || '', hostel_type: h.hostel_type || 'mixed', monthly_due_date: h.monthly_due_date || 5 });
     setDialogOpen(true);
   };
 
@@ -68,7 +68,7 @@ export default function HostelsPage() {
         {user?.role === 'super_admin' && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="add-hostel-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white" onClick={() => { setEditing(null); setForm({ name: '', code: '', address: '', city: 'Bhubaneswar', state: 'Odisha', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 }); }}>
+              <Button data-testid="add-hostel-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white" onClick={() => { setEditing(null); setForm({ name: '', code: '', address: '', city: '', state: '', phone: '', email: '', description: '', hostel_type: 'mixed', monthly_due_date: 5 }); }}>
                 <Plus className="w-4 h-4 mr-2" /> Add Property
               </Button>
             </DialogTrigger>

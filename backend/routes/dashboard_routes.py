@@ -95,13 +95,18 @@ async def get_dashboard_stats(request: Request, hostel_id: Optional[str] = Query
     expected_revenue = sum(r.get("monthly_rent", 0) for r in residents)
     
     # Today's collections
-    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
-    q_today = db.table("rent_payments").select("*").eq("month", current_month).eq("year", current_year).eq("status", "paid").gte("paid_on", today_start.isoformat())
+    today_date_str = now.strftime("%Y-%m-%d")
+    q_today = db.table("rent_payments").select("*").eq("status", "paid")
     if hostel_query.get("hostel_id"):
         q_today = q_today.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
     res_today = await q_today.execute()
-    today_payments = res_today.data
-    today_collection = sum(p.get("amount", 0) for p in today_payments)
+    all_paid_payments = res_today.data or []
+    
+    today_payments = [
+        p for p in all_paid_payments
+        if p.get("paid_on") and (str(p.get("paid_on"))[:10] == today_date_str)
+    ]
+    today_collection = sum(float(p.get("amount", 0)) for p in today_payments)
     
     # Recent activity
     q_act = db.table("activity_logs").select("*")

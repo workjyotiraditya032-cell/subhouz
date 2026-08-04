@@ -44,27 +44,43 @@ export default function ElectricityPage() {
 
   const handleSave = async () => {
     try {
+      const prevReading = parseFloat(form.previous_reading || 0);
+      const currReading = parseFloat(form.current_reading || 0);
+
+      if (currReading < prevReading) {
+        toast.error('Current Reading cannot be less than Previous Reading.');
+        return;
+      }
+
       const resident = residents.find(r => r.id === form.resident_id);
       const payload = {
         resident_id: form.resident_id,
         hostel_id: selectedHostel?.id || user?.hostel_id || resident?.hostel_id || '',
         room_number: resident?.room_number || '',
         resident_name: resident?.name || '',
-        previous_reading: parseFloat(form.previous_reading),
-        current_reading: parseFloat(form.current_reading),
-        rate_per_unit: parseFloat(form.rate_per_unit),
+        previous_reading: prevReading,
+        current_reading: currReading,
+        rate_per_unit: parseFloat(form.rate_per_unit || 8),
         additional_charges: parseFloat(form.additional_charges || 0),
         billing_month: month,
         billing_year: year,
       };
       if (editingBill) {
-        await api.put(`/electricity/bills/${editingBill}`, { current_reading: payload.current_reading, rate_per_unit: payload.rate_per_unit, additional_charges: payload.additional_charges });
+        const res = await api.put(`/electricity/bills/${editingBill}`, {
+          previous_reading: payload.previous_reading,
+          current_reading: payload.current_reading,
+          rate_per_unit: payload.rate_per_unit,
+          additional_charges: payload.additional_charges
+        });
+        toast.success('Bill updated');
+        setBills(prev => prev.map(b => b.id === editingBill ? { ...b, ...res.data } : b));
       } else {
-        await api.post('/electricity/bills', payload);
+        const res = await api.post('/electricity/bills', payload);
+        toast.success('Bill created');
+        setBills(prev => [res.data, ...prev]);
       }
-      toast.success(editingBill ? 'Bill updated' : 'Bill created');
       setDialogOpen(false); setEditingBill(null); fetchData();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
+    } catch (err) { toast.error(err.response?.data?.detail || 'Error saving bill'); }
   };
 
   const markPaid = async (id) => {
@@ -146,7 +162,7 @@ export default function ElectricityPage() {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
-                <div><Label className="text-xs">Previous Reading</Label><Input type="number" value={form.previous_reading} onChange={e => setForm({ ...form, previous_reading: e.target.value })} /></div>
+                <div><Label className="text-xs">Previous Reading</Label><Input type="number" data-testid="previous-reading" value={form.previous_reading} onChange={e => setForm({ ...form, previous_reading: e.target.value })} /></div>
                 <div><Label className="text-xs">Current Reading</Label><Input type="number" data-testid="current-reading" value={form.current_reading} onChange={e => setForm({ ...form, current_reading: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">

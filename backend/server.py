@@ -10,11 +10,26 @@ import os
 import logging
 from database import get_db, get_client, init_db
 from auth import hash_password, verify_password
+import time
 from datetime import datetime, timezone
+
+SERVER_START_TIME = time.time()
+
+def get_health_status():
+    uptime = int(time.time() - SERVER_START_TIME)
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return {
+        "status": "ok",
+        "message": "SUBHOUZ Backend is running",
+        "timestamp": now_iso,
+        "uptime": uptime
+    }
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__) 
 app = FastAPI(title="Subhouz API", description="Smart Hostel Management Platform", version="1.0.0")
+
 @app.get("/")
 async def root():
     return {
@@ -26,7 +41,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return get_health_status()
 # CORS
 origins = [
     "http://localhost:3000",
@@ -81,8 +96,8 @@ async def root():
     return {"message": "Subhouz API is running", "version": "1.0.0"}
 
 @app.get("/api/health")
-async def health():
-    return {"status": "healthy"}
+async def api_health():
+    return get_health_status()
 
 @app.on_event("startup")
 async def startup_event():

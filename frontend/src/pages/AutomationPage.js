@@ -21,6 +21,7 @@ import {
 } from '../components/ui/table';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import AutomationConfigModal from '../components/automation/AutomationConfigModal';
 
 const triggerIcons = {
   rent_paid: CreditCard,
@@ -93,22 +94,12 @@ export default function AutomationPage() {
   };
   const openConfigModal = (workflow) => {
     setEditingWorkflow(workflow);
-    setConfigText(JSON.stringify(workflow.config || {}, null, 2));
   };
 
-  const saveConfig = async () => {
+  const saveConfig = async (parsedConfig) => {
     if (!editingWorkflow) return;
     setIsSavingConfig(true);
     try {
-      let parsedConfig = {};
-      try {
-        parsedConfig = JSON.parse(configText);
-      } catch {
-        toast.error('Invalid JSON configuration');
-        setIsSavingConfig(false);
-        return;
-      }
-
       await api.put(`/automation/workflows/${editingWorkflow.id}`, { 
         config: parsedConfig 
       });
@@ -385,9 +376,9 @@ export default function AutomationPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-9 px-3 text-xs rounded-full border border-[#8C7E72]/20 bg-white text-[#6B5E54] focus:outline-none"
               >
-                <option value="all">All Statuses</option>
-                <option value="success">Success</option>
-                <option value="failed">Failed</option>
+                <option value="all" className="bg-white text-slate-900 font-medium">All Statuses</option>
+                <option value="success" className="bg-white text-slate-900 font-medium">Success</option>
+                <option value="failed" className="bg-white text-slate-900 font-medium">Failed</option>
               </select>
 
               {/* Workflow name filter */}
@@ -396,9 +387,9 @@ export default function AutomationPage() {
                 onChange={(e) => setNameFilter(e.target.value)}
                 className="h-9 px-3 text-xs rounded-full border border-[#8C7E72]/20 bg-white text-[#6B5E54] focus:outline-none"
               >
-                <option value="all">All Automations</option>
+                <option value="all" className="bg-white text-slate-900 font-medium">All Automations</option>
                 {Array.from(new Set(logs.map(l => l.automation_name).filter(Boolean))).map(name => (
-                  <option key={name} value={name}>{name}</option>
+                  <option key={name} value={name} className="bg-white text-slate-900 font-medium">{name}</option>
                 ))}
               </select>
             </div>
@@ -476,52 +467,14 @@ export default function AutomationPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Configuration Dialog */}
-      <Dialog open={!!editingWorkflow} onOpenChange={(open) => !open && setEditingWorkflow(null)}>
-        <DialogContent className="sm:max-w-lg bg-white rounded-3xl p-6 border-[#FAF7F2] shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#1C1917] flex items-center gap-2" style={{ fontFamily: 'Fraunces, serif' }}>
-              <Settings2 className="w-5 h-5 text-[#2D5F3F]" />
-              Configure {editingWorkflow?.name}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#6B5E54] mt-1">
-              Adjust JSON configuration parameters for template texts, grace periods, or delay values.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="config-editor" className="text-xs font-semibold text-[#1C1917]">
-                JSON Parameters
-              </Label>
-              <Textarea
-                id="config-editor"
-                rows={10}
-                value={configText}
-                onChange={(e) => setConfigText(e.target.value)}
-                className="font-mono text-xs p-3 rounded-2xl border-[#8C7E72]/20 focus:ring-[#2D5F3F]"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setEditingWorkflow(null)}
-              className="border-[#8C7E72]/20 text-[#6B5E54] hover:bg-[#FAF7F2]"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={saveConfig}
-              disabled={isSavingConfig}
-              className="bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white shadow-md"
-            >
-              {isSavingConfig ? 'Saving...' : 'Save Configuration'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Redesigned Automation Configuration Modal */}
+      <AutomationConfigModal
+        open={!!editingWorkflow}
+        onClose={() => setEditingWorkflow(null)}
+        workflow={editingWorkflow}
+        onSave={saveConfig}
+        isSaving={isSavingConfig}
+      />
 
     </div>
   );

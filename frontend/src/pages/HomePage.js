@@ -43,32 +43,32 @@ const AMENITIES = [
 ];
 
 const TRUST = [
-  'Verified & Secure Stays',
-  '3 Premium Properties, Multiple Locations',
-  'AC & Non-AC Options',
-  'Transparent Rent & Easy Payments',
-  'Quick Response to Enquiries',
+  'Verified & Secure Stays Across India',
+  'Hostels, PGs & Co-Living Spaces',
+  'Multi-City Rental Discovery',
+  'Transparent Rent & Automated Payments',
+  '24/7 Tenant & Manager Support',
 ];
 
 const STATIC_TESTIMONIALS = [
   {
     id: 'static-1',
     title: 'Rohan Sharma',
-    description: 'Subhouz has made my stay in Bhubaneswar incredibly comfortable. The rooms are clean, and the security is top-notch!',
+    description: 'SUBHOUZ made finding a verified PG in Koramangala, Bengaluru incredibly simple and seamless. The property details and digital payments were top-notch!',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
     alt_text: 'Rohan Sharma Review'
   },
   {
     id: 'static-2',
     title: 'Ananya Mishra',
-    description: 'Living at Homely Havens has been a wonderful experience. The amenities are excellent and the staff is very responsive.',
+    description: 'Living at Homely Havens PG in Hitech City, Hyderabad has been a fantastic experience. Digital rent tracking and rapid maintenance responses make it hassle-free.',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
     alt_text: 'Ananya Mishra Review'
   },
   {
     id: 'static-3',
     title: 'Pritam Das',
-    description: 'GSR is the best PG I\'ve lived in. Highly recommend it to anyone looking for a premium stay.',
+    description: 'Managing our 3 co-living properties in Hinjewadi, Pune using SUBHOUZ has automated our rent collection and electricity billing completely.',
     image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
     alt_text: 'Pritam Das Review'
   }
@@ -77,24 +77,24 @@ const STATIC_TESTIMONIALS = [
 const STATIC_BLOGS = [
   {
     id: 'static-b1',
-    title: 'How to Find the Perfect Room in Bhubaneswar',
-    description: 'Discover the top factors to consider when choosing a hostel or PG, from proximity to universities to essential amenities.',
+    title: 'How to Find the Perfect Rental Accommodation in Top Indian Metro Cities',
+    description: 'Discover the key factors to evaluate when booking a PG, hostel, or co-living space across major Indian tech and education hubs.',
     image: 'https://images.unsplash.com/photo-1552858725-2758b5fb1286?auto=format&fit=crop&w=600&q=80',
-    alt_text: 'Finding room blog'
+    alt_text: 'Finding rental room blog'
   },
   {
     id: 'static-b2',
-    title: 'Top 5 Amenities You Should Look for in a PG',
-    description: 'Ensure a comfortable stay by checking if your PG includes security, high-speed internet, power backup, and laundry services.',
+    title: 'Smart Property Operations: Streamlining PG & Rental Management in India',
+    description: 'Learn how automated rent collection, digital utility split billing, and instant tenant onboarding are transforming property management.',
     image: 'https://images.unsplash.com/photo-1578112010316-b44c50d27b2b?auto=format&fit=crop&w=600&q=80',
-    alt_text: 'Amenities blog'
+    alt_text: 'Property operations blog'
   }
 ];
 
 const SEARCH_SUGGESTIONS = {
-  locations: ['Patia', 'Shampur', 'Mancheswar', 'Patrapada', 'Khandagiri', 'Jaydev Vihar'],
-  colleges: ['KIIT University', 'ITER College', 'Silicon Institute of Technology', 'C. V. Raman Global University'],
-  landmarks: ['Sikharchandi Temple', 'Ranganath Temple', 'Saraswati Sishu Mandir', 'Khandagiri Caves'],
+  locations: ['Bengaluru', 'Hyderabad', 'Pune', 'Mumbai', 'Delhi NCR', 'Chennai', 'Kolkata', 'Jaipur'],
+  colleges: ['IISc Bengaluru', 'IIT Bombay', 'IIT Delhi', 'BITS Pilani', 'Anna University'],
+  landmarks: ['Koramangala', 'Hitech City', 'Hinjewadi', 'Cyber City', 'Indiranagar'],
 };
 
 /* ── section fade-in wrapper ────────────────────────── */
@@ -213,9 +213,9 @@ export default function HomePage() {
     }).catch(() => {
       // Fallback to static data if API unavailable
       setHostels([
-        { id: '1', name: 'Jogmaya Hostel', code: 'JMH', address: 'Sitaram Nagar, Panda Kudia, Plot No- 729, near Saraswati Sishu Mandir, Shampur', city: 'Bhubaneswar', hostel_type: 'boys', phone: '+91 9876543210' },
-        { id: '2', name: 'Homely Havens Girls PG', code: 'HHG', address: 'Cluster 3, Plot no- 1587, Sikharchandi Vihar, Patia', city: 'Bhubaneswar', hostel_type: 'girls', phone: '+91 9876543211' },
-        { id: '3', name: 'GopalSarojini (GS) Residency', code: 'GSR', address: 'Ranganath Temple, Rangamatia, Tala Sahi, Rangamatia, Mancheswar', city: 'Bhubaneswar', hostel_type: 'mixed', phone: '+91 9876543212' },
+        { id: '1', name: 'Apex Elite Co-Living', code: 'AEC', address: '12th Main Rd, Koramangala', city: 'Bengaluru', hostel_type: 'mixed', phone: '+91 9876543210' },
+        { id: '2', name: 'Homely Havens Girls PG', code: 'HHG', address: 'Phase 2, Hitech City', city: 'Hyderabad', hostel_type: 'girls', phone: '+91 9876543211' },
+        { id: '3', name: 'Grand Horizon Stays', code: 'GHS', address: 'Phase 1, Hinjewadi', city: 'Pune', hostel_type: 'mixed', phone: '+91 9876543212' },
       ]);
     });
   }, []);
@@ -266,10 +266,10 @@ export default function HomePage() {
       >
         {/* ── inner container: max-width 1280px, centered ── */}
         <div
+          className="px-4 md:px-10"
           style={{
             maxWidth: '1280px',
             margin: '0 auto',
-            padding: '0 40px',
             height: '84px',
             display: 'flex',
             alignItems: 'center',
@@ -347,7 +347,6 @@ export default function HomePage() {
               position: 'absolute',
               left: '50%',
               transform: 'translateX(-50%)',
-              display: 'flex',
               alignItems: 'center',
               gap: '36px',
             }}
@@ -443,7 +442,7 @@ export default function HomePage() {
 
             {/* Mobile hamburger */}
             <button
-              className="lg:hidden"
+              className="lg:hidden flex items-center justify-center"
               onClick={() => setMobileNav(!mobileNav)}
               data-testid="mobile-nav-toggle"
               style={{
@@ -466,67 +465,77 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Mobile expanded menu ── */}
+        {/* ── Mobile Slide-over Drawer Menu ── */}
         <AnimatePresence>
           {mobileNav && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-              style={{
-                overflow: 'hidden',
-                borderTop: '1px solid #EFEFEF',
-                background: '#FFFFFF',
-              }}
-            >
-              <div style={{ padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {navLinks.map(l => (
+            <>
+              {/* Backdrop Overlay */}
+              <motion.div
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMobileNav(false)}
+                className="fixed inset-0 bg-[#1C1917]/40 backdrop-blur-sm z-40 lg:hidden"
+              />
+
+              {/* Slide Drawer */}
+              <motion.div
+                key="drawer"
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed top-0 right-0 h-full w-[280px] sm:w-[320px] bg-white shadow-2xl z-50 flex flex-col p-6 lg:hidden border-l border-[#EFEFEF]"
+              >
+                {/* Drawer Header */}
+                <div className="flex items-center justify-between pb-6 border-b border-[#EFEFEF]">
+                  <div className="flex items-center gap-2">
+                    {logo.image ? (
+                      <img src={logo.image} alt={logo.alt_text || 'Subhouz Logo'} className="w-8 h-8 object-contain" />
+                    ) : (
+                      <div className="w-8 h-8 rounded bg-[#1D4ED8] flex items-center justify-center text-white font-bold text-sm">S</div>
+                    )}
+                    <span className="text-lg font-bold text-[#DC2626] font-sans">Subhouz</span>
+                  </div>
                   <button
-                    key={l.label}
-                    onClick={l.action}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: 15,
-                      fontWeight: 500,
-                      color: '#333333',
-                      textAlign: 'left',
-                      padding: '10px 4px',
-                      borderRadius: 8,
-                      transition: 'color 0.2s ease',
-                      fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = '#1D4ED8'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = '#333333'; }}
+                    onClick={() => setMobileNav(false)}
+                    className="p-2 -mr-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-50 transition-colors"
                   >
-                    {l.label}
+                    <X className="w-6 h-6" />
                   </button>
-                ))}
-                <button
-                  onClick={() => { scrollTo('contact'); setMobileNav(false); }}
-                  style={{
-                    marginTop: 12,
-                    background: '#16A34A',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 9999,
-                    height: 44,
-                    fontSize: 15,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    width: '100%',
-                    fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
-                    transition: 'background 0.2s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#15803D'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#16A34A'; }}
-                >
-                  Send an Enquiry
-                </button>
-              </div>
-            </motion.div>
+                </div>
+
+                {/* Navigation Links */}
+                <div className="flex flex-col gap-2 py-6 overflow-y-auto flex-1">
+                  {navLinks.map(l => (
+                    <button
+                      key={l.label}
+                      onClick={() => {
+                        l.action();
+                        setMobileNav(false);
+                      }}
+                      className="text-left py-3 px-2 rounded-xl text-[#333333] hover:text-emerald-700 hover:bg-emerald-50/50 font-semibold text-base transition-all font-sans"
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Bottom CTA Button */}
+                <div className="pt-6 border-t border-[#EFEFEF] mt-auto">
+                  <button
+                    onClick={() => {
+                      scrollTo('contact');
+                      setMobileNav(false);
+                    }}
+                    className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white font-semibold rounded-full h-[52px] text-base transition-colors shadow-lg shadow-emerald-600/20"
+                  >
+                    Send an Enquiry
+                  </button>
+                </div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </nav>
@@ -534,30 +543,30 @@ export default function HomePage() {
       {/* ━━ HERO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <section
         id="hero"
-        className="relative min-h-screen flex items-center pt-20 overflow-hidden"
+        className="relative min-h-fit md:min-h-screen flex items-center pt-24 pb-16 md:pt-20 md:pb-0 overflow-hidden"
       >
         {heroLoading && !dbHeroBackgrounds.length ? (
           <div className="absolute inset-0 bg-[#1C1917] animate-pulse" />
         ) : (
           <HeroCarousel images={heroBackgrounds} />
         )}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-24 lg:py-32">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-16 md:py-24 lg:py-32">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
             <div className="lg:col-span-7">
               <motion.p
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
-                className="inline-flex items-center px-5 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-emerald-300 text-xs font-bold uppercase tracking-[0.3em] mb-8"
+                className="inline-flex items-center px-5 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-emerald-300 text-xs font-bold uppercase tracking-[0.3em] mb-6 md:mb-8"
               >
-                Bhubaneswar&rsquo;s Trusted Stays
+                India's Smart Property & Rental Platform
               </motion.p>
 
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] tracking-tight mb-8 drop-shadow-2xl"
+                className="text-[40px] leading-[1.1] md:text-6xl lg:text-7xl font-black text-white tracking-tight mb-6 md:mb-8 drop-shadow-2xl"
                 style={{ fontFamily: "'Fraunces', serif" }}
               >
                 A Place That Feels<br className="hidden sm:block" /> Like Home.
@@ -567,9 +576,9 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.55, duration: 0.6 }}
-                className="text-xl text-white/90 leading-relaxed max-w-2xl mb-10"
+                className="text-base md:text-xl text-white/90 leading-relaxed max-w-2xl mb-8 md:mb-10"
               >
-                Discover comfortable stays, explore rooms and amenities, and send us an enquiry—we'll help you find the perfect place.
+                Discover verified rental properties, PGs, hostels, co-living spaces, and apartments across India. Smart management for owners, seamless living for tenants.
               </motion.p>
 
               {/* Reusable Premium Search Bar */}
@@ -577,7 +586,7 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.65, duration: 0.6 }}
-                className="relative z-30 w-full max-w-2xl mb-8"
+                className="relative z-30 w-full max-w-2xl mb-6 md:mb-8"
               >
                 <SearchBar placeholder="Search by Area, Landmark, College or Property" />
               </motion.div>
@@ -586,12 +595,12 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.75, duration: 0.5 }}
-                className="flex flex-wrap gap-4 mb-10"
+                className="flex flex-col md:flex-row gap-4 mb-10 w-full md:w-auto"
               >
                 <Button
                   data-testid="hero-browse-btn"
                   onClick={() => navigate('/hostels')}
-                  className="bg-gradient-to-r from-green-700 to-emerald-500 hover:scale-105 hover:shadow-2xl transition-all duration-300 rounded-full px-8 h-14 text-base font-semibold"
+                  className="bg-gradient-to-r from-green-700 to-emerald-500 hover:scale-105 hover:shadow-2xl transition-all duration-300 rounded-full px-8 h-[52px] md:h-14 text-base font-semibold w-full md:w-auto flex justify-center items-center"
                 >
                   Browse Stays <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -599,25 +608,25 @@ export default function HomePage() {
                   data-testid="hero-enquiry-btn"
                   variant="outline"
                   onClick={() => scrollTo('contact')}
-                  className="border-2 border-white/40 bg-white/10 backdrop-blur-xl hover:bg-white/20 rounded-full px-8 h-14 text-base font-semibold"
+                  className="border-2 border-white/40 bg-white/10 backdrop-blur-xl hover:bg-white/20 rounded-full px-8 h-[52px] md:h-14 text-base font-semibold w-full md:w-auto flex justify-center items-center"
                 >
                   Send an Enquiry
                 </Button>
               </motion.div>
 
-              <div className="mt-14">
-                <div className="grid grid-cols-3 gap-6 max-w-2xl">
-                  <div className="backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-6">
-                    <h3 className="text-4xl font-black text-white">500+</h3>
+              <div className="mt-10 md:mt-14">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-2xl">
+                  <div className="backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-4 md:p-6">
+                    <h3 className="text-3xl md:text-4xl font-black text-white">50+</h3>
+                    <p className="text-white/70 mt-2 text-sm">Cities Covered</p>
+                  </div>
+                  <div className="backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-4 md:p-6">
+                    <h3 className="text-3xl md:text-4xl font-black text-white">10,000+</h3>
+                    <p className="text-white/70 mt-2 text-sm">Verified Stays</p>
+                  </div>
+                  <div className="backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-4 md:p-6">
+                    <h3 className="text-3xl md:text-4xl font-black text-white">100k+</h3>
                     <p className="text-white/70 mt-2 text-sm">Happy Residents</p>
-                  </div>
-                  <div className="backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-6">
-                    <h3 className="text-4xl font-black text-white">5+</h3>
-                    <p className="text-white/70 mt-2 text-sm">Premium Amenities</p>
-                  </div>
-                  <div className="backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-6">
-                    <h3 className="text-4xl font-black text-white">24/7</h3>
-                    <p className="text-white/70 mt-2 text-sm">Security</p>
                   </div>
                 </div>
               </div>
@@ -627,7 +636,7 @@ export default function HomePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="flex flex-wrap gap-x-5 gap-y-2 mt-8"
+                className="flex flex-wrap gap-x-5 gap-y-2 mt-6 md:mt-8"
               >
                 {TRUST.map((t, i) => (
                   <span key={i} className="flex items-center gap-1.5 text-[11px] sm:text-xs text-white/60 font-medium">
@@ -638,15 +647,15 @@ export default function HomePage() {
             </div>
 
             {/* Dynamic Hero Side Image */}
-            <div className="hidden lg:block lg:col-span-5">
+            <div className="w-full lg:col-span-5 mt-10 lg:mt-0">
               {heroSideImage.loading ? (
-                <div className="relative rounded-3xl overflow-hidden w-full h-[450px] bg-white/10 border border-white/20 animate-pulse" />
+                <div className="relative rounded-3xl overflow-hidden w-full h-[250px] sm:h-[350px] lg:h-[450px] bg-white/10 border border-white/20 animate-pulse" />
               ) : heroSideImage.image ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5, duration: 0.8 }}
-                  className="relative rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-[450px]"
+                  className="relative rounded-3xl overflow-hidden border border-white/20 shadow-2xl h-[250px] sm:h-[350px] lg:h-[450px]"
                 >
                   <img
                     src={heroSideImage.image}
@@ -673,10 +682,10 @@ export default function HomePage() {
           <FadeIn className="max-w-xl mb-14">
             <p className="text-xs font-semibold text-[#2D5F3F] tracking-[0.2em] uppercase mb-3">Our Properties</p>
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight" style={{ fontFamily: "'Fraunces', serif" }}>
-              Find Your Ideal Stay in Bhubaneswar
+              Find Verified Rental Properties Across India
             </h2>
             <p className="text-[#6B5E54] mt-4 text-base leading-relaxed">
-              Each of our properties is carefully maintained to ensure comfort, safety, and a welcoming environment.
+              Explore curated PGs, hostels, co-living spaces, and rental apartments across major Indian cities with complete peace of mind.
             </p>
           </FadeIn>
 
@@ -687,7 +696,7 @@ export default function HomePage() {
               return (
                 <FadeIn key={h.id} delay={i * 0.12}>
                   <div className="group rounded-3xl overflow-hidden bg-white border border-[#ECE5DD] shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-500" data-testid={`hostel-public-card-${h.id}`}>
-                    <div className="relative h-56 overflow-hidden">
+                    <div className="relative h-48 sm:h-64 md:h-56 overflow-hidden">
                       <img
                         src={finalCover}
                         alt={h.name}
@@ -736,7 +745,7 @@ export default function HomePage() {
 
                       <Button
                         onClick={() => navigate(`/hostels/${h.id}`)}
-                        className="w-full h-12 rounded-xl bg-[#2D5F3F] hover:bg-[#214B31] text-white font-semibold transition-all duration-300 hover:scale-[1.02] shadow-lg"
+                        className="w-full h-[52px] md:h-12 rounded-xl bg-[#2D5F3F] hover:bg-[#214B31] text-white font-semibold transition-all duration-300 hover:scale-[1.02] shadow-lg flex items-center justify-center"
                         data-testid={`enquire-hostel-${h.id}`}
                       >
                         View Property →
@@ -756,21 +765,21 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <FadeIn>
               <p className="text-xs font-semibold text-[#2D5F3F] tracking-[0.2em] uppercase mb-3">About Subhouz</p>
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight leading-tight mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
                 We Provide Comfortable and Secure Stays for Everyone
               </h2>
               <p className="text-[#6B5E54] text-base leading-relaxed mb-6">
-                Subhouz is Bhubaneswar's leading accommodation platform, offering high-quality PGs and hostels. We are committed to providing you a hassle-free, secure, and premium living experience with state-of-the-art amenities and 24/7 support.
+                SUBHOUZ is India&rsquo;s Smart Property & Rental Management Platform. We empower property managers, PG operators, co-living brands, and landlords with automated operations, digital rent collection, and smart tenant management—while offering tenants a seamless rental discovery experience across India.
               </p>
               <p className="text-[#6B5E54] text-base leading-relaxed mb-8">
                 Whether you are a student looking for a quiet study environment or a working professional needing a comfortable space near your workplace, we have properties tailored for your needs.
               </p>
-              <Button onClick={() => scrollTo('contact')} className="bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white rounded-full px-8 h-12 text-sm font-semibold shadow-md">
+              <Button onClick={() => scrollTo('contact')} className="w-full md:w-auto bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white rounded-full px-8 h-[52px] md:h-12 text-sm font-semibold shadow-md flex items-center justify-center">
                 Get in Touch
               </Button>
             </FadeIn>
             <FadeIn delay={0.12}>
-              <div className="relative rounded-[32px] overflow-hidden shadow-2xl h-[450px] border border-[#ECE5DD]">
+              <div className="relative rounded-[32px] overflow-hidden shadow-2xl h-[250px] sm:h-[350px] md:h-[450px] border border-[#ECE5DD]">
                 {aboutImage.loading ? (
                   <div className="w-full h-full bg-slate-200 animate-pulse" />
                 ) : (
@@ -788,27 +797,27 @@ export default function HomePage() {
       </section>
 
       {/* ━━ AMENITIES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section id="amenities" className="py-24 bg-[#F3EDE6]" data-testid="amenities-section">
+      <section id="amenities" className="py-24 lg:py-32 bg-[#F3EDE6]" data-testid="amenities-section">
         <div className="max-w-7xl mx-auto px-6">
           <FadeIn className="text-center max-w-xl mx-auto mb-14">
             <p className="text-xs font-semibold text-[#2D5F3F] tracking-[0.2em] uppercase mb-3">What We Offer</p>
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
               Everything You Need for a Comfortable Stay
             </h2>
           </FadeIn>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-8">
             {AMENITIES.map((a, i) => (
               <FadeIn key={i} delay={i * 0.06}>
-                <div className="group relative overflow-hidden rounded-3xl bg-white p-8 border border-[#ECE5DD] shadow-lg hover:shadow-2xl hover:-translate-y-3 transition-all duration-500">
+                <div className="group relative overflow-hidden rounded-3xl bg-white p-4 md:p-8 border border-[#ECE5DD] shadow-lg hover:shadow-2xl hover:-translate-y-3 transition-all duration-500">
                   <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <div className="relative z-10">
-                    <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#2D5F3F] to-[#4A8B5E] flex items-center justify-center shadow-lg mb-6 group-hover:rotate-6 group-hover:scale-110 transition-all duration-500">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#2D5F3F] to-[#4A8B5E] flex items-center justify-center shadow-lg mb-4 md:mb-6 group-hover:rotate-6 group-hover:scale-110 transition-all duration-500">
                       <a.icon className="w-8 h-8 text-white"/>
                     </div>
-                    <h3 className="text-lg font-bold text-[#1C1917] mb-2 text-center">
+                    <h3 className="text-sm md:text-lg font-bold text-[#1C1917] mb-2 text-center">
                       {a.label}
                     </h3>
-                    <p className="text-sm text-[#6B5E54] leading-relaxed text-center">
+                    <p className="text-xs md:text-sm text-[#6B5E54] leading-relaxed text-center hidden sm:block">
                       Designed for a comfortable and secure stay.
                     </p>
                   </div>
@@ -829,13 +838,13 @@ export default function HomePage() {
             </h2>
           </FadeIn>
           {galleryLoading && !dbGallery.length ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 h-[460px]">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 h-auto md:h-[460px]">
               <div className="col-span-2 row-span-2 bg-slate-200 animate-pulse rounded-3xl" />
               <div className="bg-slate-200 animate-pulse rounded-3xl" />
               <div className="bg-slate-200 animate-pulse rounded-3xl" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 auto-rows-[220px]">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 auto-rows-[150px] md:auto-rows-[220px]">
               {galleryImages.map((img, i) => (
                 <FadeIn key={i} delay={i * 0.08}>
                   <div
@@ -846,7 +855,7 @@ export default function HomePage() {
                       rounded-3xl
                       shadow-xl
                       cursor-pointer
-                      ${i === 0 ? "md:col-span-2 md:row-span-2 h-[460px]" : "h-[220px]"}
+                      ${i === 0 ? "col-span-2 h-[240px] md:col-span-2 md:row-span-2 md:h-[460px]" : "h-[150px] md:h-[220px]"}
                     `}
                   >
                     <img
@@ -1016,8 +1025,8 @@ export default function HomePage() {
                       onChange={e => setEnquiry({ ...enquiry, preferred_hostel: e.target.value })}
                       className="w-full h-11 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 appearance-none focus:outline-none focus:ring-2 focus:ring-[#2D5F3F]"
                     >
-                      <option value="" className="text-[#1C1917]">No preference</option>
-                      {hostels.map(h => <option key={h.id} value={h.name} className="text-[#1C1917]">{h.name}</option>)}
+                      <option value="" className="text-slate-900 bg-white font-medium">No preference</option>
+                      {hostels.map(h => <option key={h.id} value={h.name} className="text-slate-900 bg-white font-medium">{h.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -1076,7 +1085,7 @@ export default function HomePage() {
       {/* ━━ FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <footer className="bg-[#16130F] border-t border-white/5 py-12" data-testid="footer">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid sm:grid-cols-3 gap-8 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 {footerLogo.loading ? (
@@ -1095,7 +1104,7 @@ export default function HomePage() {
                 <span className="text-white font-semibold tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
               </div>
               <p className="text-xs text-[#6B5E54] leading-relaxed max-w-xs">
-                Comfortable, secure, and thoughtfully managed properties in Bhubaneswar, Odisha.
+                India&rsquo;s Smart Property & Rental Management Platform for Hostels, PGs, Co-living Spaces & Rental Apartments.
               </p>
             </div>
             <div>
@@ -1162,7 +1171,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-[#4A4340]">&copy; {new Date().getFullYear()} Subhouz. All rights reserved.</p>
             <Link to="/login" className="text-xs text-[#4A4340] hover:text-[#6B5E54] transition-colors" data-testid="footer-admin-login">
               Admin Login

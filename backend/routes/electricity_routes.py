@@ -23,6 +23,7 @@ class BillCreate(BaseModel):
     billing_year: int
 
 class BillUpdate(BaseModel):
+    previous_reading: Optional[float] = None
     current_reading: Optional[float] = None
     rate_per_unit: Optional[float] = None
     additional_charges: Optional[float] = None
@@ -65,7 +66,10 @@ async def create_bill(req: BillCreate, request: Request):
     if user["role"] == "hostel_admin" and user.get("hostel_id") != req.hostel_id:
         raise HTTPException(status_code=403, detail="Access denied")
         
-    units = max(0, req.current_reading - req.previous_reading)
+    if req.current_reading < req.previous_reading:
+        raise HTTPException(status_code=400, detail="Current Reading cannot be less than Previous Reading.")
+
+    units = max(0.0, req.current_reading - req.previous_reading)
     total = round(units * req.rate_per_unit + req.additional_charges, 2)
     
     resident_name = req.resident_name
@@ -117,13 +121,17 @@ async def update_bill(bill_id: str, req: BillUpdate, request: Request):
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
         
-    # Recalculate if reading changed
-    if "current_reading" in updates:
-        prev = float(bill.get("previous_reading") or 0.0)
-        units = max(0.0, updates["current_reading"] - prev)
-        rate = updates.get("rate_per_unit", float(bill.get("rate_per_unit") or 8.0))
-        add = updates.get("additional_charges", float(bill.get("additional_charges") or 0.0))
-        updates["units_consumed"] = units
+    # Recalculate if reading or rate changed
+    prev = float(updates.get("previous_reading", bill.get("previous_reading") or 0.0))
+    curr = float(updates.get("current_reading", bill.get("current_reading") or 0.0))
+    rate = float(updates.get("rate_per_unit", bill.get("rate_per_unit") or 8.0))
+    add = float(updates.get("additional_charges", bill.get("additional_charges") or 0.0))
+
+    if "previous_reading" in updates or "current_reading" in updates or "rate_per_unit" in updates or "additional_charges" in updates:
+        if curr < prev:
+            raise HTTPException(status_code=400, detail="Current Reading cannot be less than Previous Reading.")
+        units = max(0.0, curr - prev)
+        updates["units_consumed"] = round(units, 2)
         updates["total_amount"] = round(units * rate + add, 2)
         
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()

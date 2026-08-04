@@ -9,6 +9,8 @@ import logging, secrets
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+from services.security_questions_store import set_user_security_answers, get_user_security_hashes_async, set_user_security_answers_async
+
 class CreateAdminRequest(BaseModel):
     email: str
     password: str
@@ -16,6 +18,9 @@ class CreateAdminRequest(BaseModel):
     role: str = "hostel_admin"
     hostel_id: Optional[str] = None
     phone: Optional[str] = None
+    sec_school: Optional[str] = None
+    sec_mother: Optional[str] = None
+    sec_father: Optional[str] = None
 
 class UpdateAdminRequest(BaseModel):
     name: Optional[str] = None
@@ -23,6 +28,13 @@ class UpdateAdminRequest(BaseModel):
     phone: Optional[str] = None
     hostel_id: Optional[str] = None
     role: Optional[str] = None
+    sec_school: Optional[str] = None
+    sec_mother: Optional[str] = None
+    sec_father: Optional[str] = None
+
+class AdminResetPasswordRequest(BaseModel):
+    new_password: str
+    confirm_password: str
 
 @router.get("/users")
 async def list_admin_users(request: Request):
@@ -48,6 +60,20 @@ async def list_admin_users(request: Request):
             u["hostel_name"] = hostel["name"] if hostel else "Unknown"
         else:
             u["hostel_name"] = None
+
+        # Include security questions configuration status
+        hashes = await get_user_security_hashes_async(u["email"])
+        if hashes and any(hashes.values()):
+            u["sec_configured"] = True
+            u["sec_school"] = "••••••••"
+            u["sec_mother"] = "••••••••"
+            u["sec_father"] = "••••••••"
+        else:
+            u["sec_configured"] = False
+            u["sec_school"] = ""
+            u["sec_mother"] = ""
+            u["sec_father"] = ""
+
     return users
 
 @router.post("/users")
@@ -64,7 +90,7 @@ async def create_admin_user(req: CreateAdminRequest, request: Request):
         raise HTTPException(status_code=400, detail="Email already registered")
         
     hostel_id = None
-    if req.hostel_id:
+    if req.hostel_id and str(req.hostel_id).strip():
         hostel_id = parse_uuid(req.hostel_id)
         
     doc = {
@@ -85,6 +111,9 @@ async def create_admin_user(req: CreateAdminRequest, request: Request):
         
     inserted_id = str(res_insert.data[0]["id"])
     
+    if req.sec_school or req.sec_mother or req.sec_father:
+        set_user_security_answers(email, req.sec_school, req.sec_mother, req.sec_father)
+
     await db.table("activity_logs").insert({
         "user_id": str(user["id"]),
         "user_name": user.get("name", ""),
@@ -105,11 +134,20 @@ async def update_admin_user(user_id: str, req: UpdateAdminRequest, request: Requ
         raise HTTPException(status_code=403, detail="Only Super Admin can update users")
         
     user_uuid = parse_uuid(user_id)
-    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    raw_updates = req.model_dump()
+    
+    sec_school = raw_updates.pop("sec_school", None)
+    sec_mother = raw_updates.pop("sec_mother", None)
+    sec_father = raw_updates.pop("sec_father", None)
+    
+    updates = {k: v for k, v in raw_updates.items() if v is not None}
     if "email" in updates:
         updates["email"] = updates["email"].strip().lower()
-    if "hostel_id" in updates and updates["hostel_id"]:
-        updates["hostel_id"] = parse_uuid(updates["hostel_id"])
+    if "hostel_id" in updates:
+        if updates["hostel_id"] and str(updates["hostel_id"]).strip():
+            updates["hostel_id"] = parse_uuid(updates["hostel_id"])
+        else:
+            updates["hostel_id"] = None
         
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     
@@ -121,6 +159,11 @@ async def update_admin_user(user_id: str, req: UpdateAdminRequest, request: Requ
     u["_id"] = str(u["id"])
     u["id"] = u["_id"]
     u.pop("password_hash", None)
+    
+    if sec_school or sec_mother or sec_father:
+        if sec_school != "••••••••" and sec_mother != "••••••••" and sec_father != "••••••••":
+            await set_user_security_answers_async(u["email"], sec_school, sec_mother, sec_father)
+        
     return u
 
 @router.put("/users/{user_id}/toggle-status")
@@ -156,23 +199,44 @@ async def toggle_user_status(user_id: str, request: Request):
     return {"message": f"User {action}", "disabled": new_status}
 
 @router.put("/users/{user_id}/reset-password")
-async def reset_user_password(user_id: str, request: Request):
+async def reset_user_password(user_id: str, req: AdminResetPasswordRequest, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Only Super Admin can reset passwords")
         
+    if not req.new_password or len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+
+    if req.new_password != req.confirm_password:
+        raise HTTPException(status_code=400, detail="New password and confirm password do not match")
+        
     user_uuid = parse_uuid(user_id)
-    new_pass = secrets.token_urlsafe(10)
+    res_target = await db.table("users").select("name, email").eq("id", user_uuid).execute()
+    target = res_target.data[0] if res_target.data else None
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_hash = hash_password(req.new_password)
     res_update = await db.table("users").update({
-        "password_hash": hash_password(new_pass),
+        "password_hash": new_hash,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", user_uuid).execute()
     
     if not res_update.data:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=500, detail="Failed to update password")
         
-    return {"message": "Password reset", "new_password": new_pass}
+    await db.table("activity_logs").insert({
+        "user_id": str(user["id"]),
+        "user_name": user.get("name", ""),
+        "action": "admin_password_reset",
+        "entity_type": "user",
+        "entity_id": user_id,
+        "details": f"Super Admin reset password for: {target.get('name', '')} ({target.get('email', '')})",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }).execute()
+
+    return {"message": f"Password updated successfully for {target.get('name', 'user')}"}
 
 @router.delete("/users/{user_id}")
 async def delete_admin_user(user_id: str, request: Request):

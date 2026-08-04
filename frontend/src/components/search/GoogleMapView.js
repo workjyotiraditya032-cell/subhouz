@@ -14,20 +14,24 @@ setOptions({
 
 // Preset search coordinates fallback
 const SEARCH_COORDINATES = {
-  "patia": { lat: 20.3588, lng: 85.8166 },
-  "shampur": { lat: 20.2885, lng: 85.7766 },
-  "mancheswar": { lat: 20.3259, lng: 85.8672 },
-  "patrapada": { lat: 20.2801, lng: 85.7441 },
-  "khandagiri": { lat: 20.2580, lng: 85.7750 },
-  "jaydev vihar": { lat: 20.2970, lng: 85.8180 },
-  "kiit university": { lat: 20.3533, lng: 85.8189 },
-  "iter college": { lat: 20.2766, lng: 85.7966 },
-  "silicon institute of technology": { lat: 20.3702, lng: 85.8078 },
-  "c. v. raman global university": { lat: 20.2155, lng: 85.7355 },
-  "sikharchandi temple": { lat: 20.3644, lng: 85.8233 },
-  "ranganath temple": { lat: 20.3275, lng: 85.8690 },
-  "saraswati sishu mandir": { lat: 20.2890, lng: 85.7790 },
-  "khandagiri caves": { lat: 20.2584, lng: 85.7752 },
+  "bengaluru": { lat: 12.9716, lng: 77.5946 },
+  "koramangala": { lat: 12.9352, lng: 77.6245 },
+  "indiranagar": { lat: 12.9784, lng: 77.6408 },
+  "hyderabad": { lat: 17.3850, lng: 78.4867 },
+  "hitech city": { lat: 17.4435, lng: 78.3772 },
+  "gachibowli": { lat: 17.4401, lng: 78.3489 },
+  "pune": { lat: 18.5204, lng: 73.8567 },
+  "hinjewadi": { lat: 18.5912, lng: 73.7389 },
+  "viman nagar": { lat: 18.5679, lng: 73.9143 },
+  "mumbai": { lat: 19.0760, lng: 72.8777 },
+  "bandra": { lat: 19.0596, lng: 72.8295 },
+  "delhi": { lat: 28.6139, lng: 77.2090 },
+  "gurugram": { lat: 28.4595, lng: 77.0266 },
+  "cyber city": { lat: 28.4950, lng: 77.0895 },
+  "chennai": { lat: 13.0827, lng: 80.2707 },
+  "velachery": { lat: 12.9796, lng: 80.2209 },
+  "kolkata": { lat: 22.5726, lng: 88.3639 },
+  "jaipur": { lat: 26.9124, lng: 75.7873 },
 };
 
 export default function GoogleMapView({ searchLocation }) {
@@ -71,11 +75,11 @@ export default function GoogleMapView({ searchLocation }) {
     const initializeMap = async () => {
       const { Map } = await googleInstance.maps.importLibrary("maps");
       
-      const defaultCenter = { lat: 20.2961, lng: 85.8245 }; // Bhubaneswar
+      const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // India Center
       
       const map = new Map(mapContainerRef.current, {
         center: defaultCenter,
-        zoom: 12,
+        zoom: 5,
         mapId: "DEMO_MAP_ID", // Required for Advanced Markers
         disableDefaultUI: true,
         zoomControl: true,

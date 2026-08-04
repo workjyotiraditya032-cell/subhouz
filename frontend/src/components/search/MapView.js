@@ -6,20 +6,24 @@ import { useSearch } from '../../contexts/SearchContext';
 
 // Coordinate lookup presets for centering queries
 const SEARCH_COORDINATES = {
-  "patia": [20.3588, 85.8166],
-  "shampur": [20.2885, 85.7766],
-  "mancheswar": [20.3259, 85.8672],
-  "patrapada": [20.2801, 85.7441],
-  "khandagiri": [20.2580, 85.7750],
-  "jaydev vihar": [20.2970, 85.8180],
-  "kiit university": [20.3533, 85.8189],
-  "iter college": [20.2766, 85.7966],
-  "silicon institute of technology": [20.3702, 85.8078],
-  "c. v. raman global university": [20.2155, 85.7355],
-  "sikharchandi temple": [20.3644, 85.8233],
-  "ranganath temple": [20.3275, 85.8690],
-  "saraswati sishu mandir": [20.2890, 85.7790],
-  "khandagiri caves": [20.2584, 85.7752],
+  "bengaluru": [12.9716, 77.5946],
+  "koramangala": [12.9352, 77.6245],
+  "indiranagar": [12.9784, 77.6408],
+  "hyderabad": [17.3850, 78.4867],
+  "hitech city": [17.4435, 78.3772],
+  "gachibowli": [17.4401, 78.3489],
+  "pune": [18.5204, 73.8567],
+  "hinjewadi": [18.5912, 73.7389],
+  "viman nagar": [18.5679, 73.9143],
+  "mumbai": [19.0760, 72.8777],
+  "bandra": [19.0596, 72.8295],
+  "delhi": [28.6139, 77.2090],
+  "gurugram": [28.4595, 77.0266],
+  "cyber city": [28.4950, 77.0895],
+  "chennai": [13.0827, 80.2707],
+  "velachery": [12.9796, 80.2209],
+  "kolkata": [22.5726, 88.3639],
+  "jaipur": [26.9124, 75.7873],
 };
 
 // Fix for broken default icon urls in Leaflet bundle
@@ -108,7 +112,7 @@ export default function MapView({ searchLocation }) {
       return [filteredHostels[0].latitude, filteredHostels[0].longitude];
     }
     
-    return [20.2961, 85.8245]; // default bhubaneswar
+    return [20.5937, 78.9629]; // default India center
   }, [searchLocation, filteredHostels]);
 
   const handleMarkerClick = (hostelId) => {

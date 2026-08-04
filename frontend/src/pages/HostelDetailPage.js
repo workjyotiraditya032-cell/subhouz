@@ -261,7 +261,7 @@ export default function HostelDetailPage() {
                             <p className="text-lg font-bold text-[#2D5F3F]" style={{ fontFamily: "'Fraunces', serif" }}>₹{r.rent?.toLocaleString()}</p>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
-                            {r.has_bathroom && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Bathroom</span>}
+                            {(r.has_attached_bathroom ?? r.hasAttachedBathroom ?? r.has_bathroom) && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Bathroom</span>}
                             {r.has_balcony && <span className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">Balcony</span>}
                             {(r.amenities || []).map((a, ai) => <span key={ai} className="text-[10px] px-2 py-0.5 bg-[#F3EDE6] rounded-full text-[#6B5E54]">{a}</span>)}
                           </div>

@@ -1,0 +1,17 @@
+{
+  "admin@subhouz.com": {
+    "school_hash": "$2b$12$80Nh38gfBYwunzy2Rdm1uerlnAP7MGqlSGMHflYP8bnN1YfUPkhnq",
+    "mother_hash": "$2b$12$KiW6UObRQd4Vi4kT5Pdt2.l8UCAk4UwhSRnnSoHf5qnHE8Zbb3uOS",
+    "father_hash": "$2b$12$GtqeRkVgDzRZCP0YBD6ZjOXFlSkJOgvP4uYmErkFsrRQ4V2mn9BzC"
+  },
+  "jogmaya.admin@subhouz.com": {
+    "school_hash": "$2b$12$vZmsQ7RW0lvoJ61Vr2IKN.df8q5fJdDDlbsLmXgRQ2P5YzugHUW4q",
+    "mother_hash": "$2b$12$3wCzx3wVzV0Y/B9MwQRoYuMRYxLGG0asGJTeewWhqb7Ik52sHUjk2",
+    "father_hash": "$2b$12$uoXwLAJuuBwLdEHQ6PLMhOneYJ5.wA72492ZtgiuqKOZxX/B5ngPq"
+  },
+  "test_user_sec@subhouz.com": {
+    "school_hash": "$2b$12$7L89Wlo9BWJ3Si9uq9mJoO4Cp2OnjTnndpyQxvFukNdtRZI/oNKKS",
+    "mother_hash": "$2b$12$pz3mcMcq2d21fNHs5JG.UuqCLmOzMvGYrWp2Qg80E.HMAHf2aNYo.",
+    "father_hash": "$2b$12$5g83yX.2U2Tmt5GjWh0w0.CJ6/XzOXLf116zPrXsGbpNPfsurdI9G"
+  }
+}

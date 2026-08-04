@@ -58,9 +58,11 @@ function App() {
             <Route index element={<DashboardPage />} />
 
             <Route path="hostels" element={<HostelsPage />} />
+            <Route path="properties" element={<HostelsPage />} />
             <Route path="rooms" element={<RoomsPage />} />
             <Route path="residents" element={<ResidentsPage />} />
             <Route path="rent-tracker" element={<RentTrackerPage />} />
+            <Route path="rent" element={<RentTrackerPage />} />
             <Route path="enquiries" element={<EnquiriesPage />} />
             <Route path="electricity" element={<ElectricityPage />} />
             <Route path="automation" element={<AutomationPage />} />
@@ -75,10 +77,27 @@ function App() {
               path="admin-management"
               element={<AdminManagementPage />}
             />
+            <Route
+              path="admin-users"
+              element={<AdminManagementPage />}
+            />
+            <Route
+              path="users"
+              element={<AdminManagementPage />}
+            />
 
             <Route
               path="settings"
               element={<SettingsPage />}
+            />
+
+            <Route
+              path="reports"
+              element={<DashboardPage />}
+            />
+            <Route
+              path="analytics"
+              element={<DashboardPage />}
             />
           </Route>
 

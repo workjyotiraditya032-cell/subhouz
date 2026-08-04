@@ -71,7 +71,7 @@ export default function PropertyCard({ hostel, defaultImage }) {
             </h3>
             <div className="flex items-center gap-1 text-slate-400 text-xs font-semibold">
               <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate">{hostel.area}, Bhubaneswar</span>
+              <span className="truncate">{hostel.area ? `${hostel.area}, ${hostel.city || 'India'}` : hostel.city || 'India'}</span>
             </div>
           </div>
           {/* Rating */}
@@ -92,12 +92,12 @@ export default function PropertyCard({ hostel, defaultImage }) {
         {/* Dynamic Distance / Nearest Landmarks */}
         <div className="bg-slate-50 rounded-2xl p-3.5 flex flex-col gap-2 border border-slate-100/50">
           <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
-            <span>Nearest College:</span>
-            <span className="text-slate-800 font-bold text-right truncate pl-2 max-w-[160px]">{hostel.college || 'KIIT University'}</span>
+            <span>Nearest Institution:</span>
+            <span className="text-slate-800 font-bold text-right truncate pl-2 max-w-[160px]">{hostel.college || 'Top University Hub'}</span>
           </div>
           <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
             <span>Landmark Focus:</span>
-            <span className="text-slate-800 font-bold text-right truncate pl-2 max-w-[160px]">{hostel.landmark || 'Sikharchandi'}</span>
+            <span className="text-slate-800 font-bold text-right truncate pl-2 max-w-[160px]">{hostel.landmark || 'Tech Park / Hub'}</span>
           </div>
         </div>
 
