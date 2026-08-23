@@ -435,11 +435,11 @@ export default function HostelListingPage() {
       </section>
 
       {/* ━━ FILTERS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div className="sticky top-16 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E0D8]/60 py-4">
-        <div className="max-w-7xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-[#6B5E54]">Filter:</span>
-            <div className="flex gap-2">
+      <div className="sticky top-16 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E0D8]/60 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar max-w-full pb-1 sm:pb-0">
+            <span className="text-xs sm:text-sm font-medium text-[#6B5E54] shrink-0">Filter:</span>
+            <div className="flex gap-1.5 sm:gap-2 shrink-0">
               {[
                 { value: 'all', label: 'All' },
                 { value: 'boys', label: 'Boys' },
@@ -450,7 +450,7 @@ export default function HostelListingPage() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   data-testid={`filter-${f.value}`}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                     filter === f.value
                       ? 'bg-[#2D5F3F] text-white shadow-sm'
                       : 'bg-white border border-[#E8E0D8] text-[#6B5E54] hover:border-[#2D5F3F]/40 hover:text-[#2D5F3F]'
@@ -464,7 +464,7 @@ export default function HostelListingPage() {
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-[#8C7E72]" />
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="w-40 h-8 text-xs border-[#E8E0D8] rounded-full bg-white" data-testid="sort-select">
+              <SelectTrigger className="w-36 sm:w-40 h-8 text-xs border-[#E8E0D8] rounded-full bg-white" data-testid="sort-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

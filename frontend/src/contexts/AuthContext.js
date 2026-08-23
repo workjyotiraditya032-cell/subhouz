@@ -39,10 +39,23 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await api.post('/auth/logout'); } catch { /* ignore */ }
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.warn('Backend logout error, proceeding with local cleanup:', err);
+    } finally {
+      setUser(null);
+      try {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('selectedHostelId');
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.error('Storage clear error:', e);
+      }
+    }
   };
 
   return (

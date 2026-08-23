@@ -72,10 +72,10 @@ export default function RentTrackerPage() {
 
   return (
     <div className="space-y-6" data-testid="rent-tracker-page">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Rent Tracker</h1>
-          <p className="text-sm text-[#64748B] mt-1">Mark rent payments with one tap. Receipts auto-generated.</p>
+          <p className="text-sm text-[#64748B] mt-1">Track monthly rent collections and status</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={prevMonth} data-testid="prev-month-btn"><ChevronLeft className="w-4 h-4" /></Button>
@@ -86,7 +86,7 @@ export default function RentTrackerPage() {
 
       {/* Summary cards */}
       {data?.summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="stat-card" data-testid="summary-total">
             <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider mb-1">Total Residents</p>
             <p className="text-2xl font-bold text-[#0F172A]" style={{ fontFamily: 'Outfit' }}>{data.summary.total}</p>

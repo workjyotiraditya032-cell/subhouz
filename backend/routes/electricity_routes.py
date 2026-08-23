@@ -109,8 +109,7 @@ async def create_bill(req: BillCreate, request: Request):
     inserted_doc["id"] = inserted_doc["_id"]
     return inserted_doc
 
-@router.put("/bills/{bill_id}")
-async def update_bill(bill_id: str, req: BillUpdate, request: Request):
+async def perform_update_bill(bill_id: str, req: BillUpdate, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
@@ -119,9 +118,14 @@ async def update_bill(bill_id: str, req: BillUpdate, request: Request):
     res_bill = await db.table("electricity_bills").select("*").eq("id", bill_uuid).execute()
     bill = res_bill.data[0] if res_bill.data else None
     if not bill:
-        raise HTTPException(status_code=404, detail="Bill not found")
+        raise HTTPException(status_code=404, detail="Electricity entry not found.")
         
-    # Recalculate if reading or rate changed
+    if user["role"] == "hostel_admin" and str(bill.get("hostel_id")) != str(user.get("hostel_id")):
+        raise HTTPException(status_code=403, detail="Permission denied. You can only edit entries for your own property.")
+    elif user["role"] not in ["super_admin", "hostel_admin"]:
+        raise HTTPException(status_code=403, detail="Permission denied.")
+
+    prev_amount = float(bill.get("total_amount") or 0.0)
     prev = float(updates.get("previous_reading", bill.get("previous_reading") or 0.0))
     curr = float(updates.get("current_reading", bill.get("current_reading") or 0.0))
     rate = float(updates.get("rate_per_unit", bill.get("rate_per_unit") or 8.0))
@@ -138,12 +142,36 @@ async def update_bill(bill_id: str, req: BillUpdate, request: Request):
     
     res_update = await db.table("electricity_bills").update(updates).eq("id", bill_uuid).execute()
     if not res_update.data:
-        raise HTTPException(status_code=404, detail="Bill not found")
+        raise HTTPException(status_code=404, detail="Electricity entry not found.")
         
     updated_bill = res_update.data[0]
     updated_bill["_id"] = str(updated_bill["id"])
     updated_bill["id"] = updated_bill["_id"]
+
+    # Log audit activity
+    try:
+        await db.table("activity_logs").insert({
+            "user_id": str(user["id"]),
+            "user_name": user.get("name", ""),
+            "hostel_id": bill.get("hostel_id"),
+            "action": "electricity_bill_updated",
+            "entity_type": "electricity_bill",
+            "entity_id": bill_id,
+            "details": f"Updated electricity bill for {bill.get('resident_name', '')} ({bill.get('billing_month')}/{bill.get('billing_year')}): Prev={prev}, Curr={curr}, Units={updated_bill.get('units_consumed')}, Amount=₹{updated_bill.get('total_amount')} (was ₹{prev_amount})",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }).execute()
+    except Exception as log_err:
+        logger.warning(f"Failed to write audit log: {log_err}")
+
     return updated_bill
+
+@router.put("/bills/{bill_id}")
+async def update_bill_endpoint(bill_id: str, req: BillUpdate, request: Request):
+    return await perform_update_bill(bill_id, req, request)
+
+@router.put("/{bill_id}")
+async def update_bill_alt_endpoint(bill_id: str, req: BillUpdate, request: Request):
+    return await perform_update_bill(bill_id, req, request)
 
 @router.post("/bills/{bill_id}/mark-paid")
 async def mark_bill_paid(bill_id: str, request: Request):
@@ -152,6 +180,16 @@ async def mark_bill_paid(bill_id: str, request: Request):
     now = datetime.now(timezone.utc)
     
     bill_uuid = parse_uuid(bill_id)
+    res_bill = await db.table("electricity_bills").select("*").eq("id", bill_uuid).execute()
+    bill = res_bill.data[0] if res_bill.data else None
+    if not bill:
+        raise HTTPException(status_code=404, detail="Electricity entry not found.")
+
+    if user["role"] == "hostel_admin" and str(bill.get("hostel_id")) != str(user.get("hostel_id")):
+        raise HTTPException(status_code=403, detail="Permission denied. You can only update entries for your own property.")
+    elif user["role"] not in ["super_admin", "hostel_admin"]:
+        raise HTTPException(status_code=403, detail="Permission denied.")
+
     res_update = await db.table("electricity_bills").update({
         "payment_status": "paid",
         "payment_date": now.isoformat(),
@@ -159,8 +197,136 @@ async def mark_bill_paid(bill_id: str, request: Request):
     }).eq("id", bill_uuid).execute()
     
     if not res_update.data:
-        raise HTTPException(status_code=404, detail="Bill not found")
-    return {"message": "Bill marked as paid"}
+        raise HTTPException(status_code=404, detail="Electricity entry not found.")
+
+    # Log audit activity
+    try:
+        await db.table("activity_logs").insert({
+            "user_id": str(user["id"]),
+            "user_name": user.get("name", ""),
+            "hostel_id": bill.get("hostel_id"),
+            "action": "electricity_bill_marked_paid",
+            "entity_type": "electricity_bill",
+            "entity_id": bill_id,
+            "details": f"Marked electricity bill as paid for {bill.get('resident_name', '')}: Amount=₹{bill.get('total_amount')}",
+            "timestamp": now.isoformat()
+        }).execute()
+    except Exception as log_err:
+        logger.warning(f"Failed to write audit log: {log_err}")
+
+    return {"success": True, "message": "Bill marked as paid"}
+
+async def perform_delete_bill(bill_id: str, request: Request):
+    db = get_db()
+    user = await get_current_user(request, db)
+    
+    if not bill_id or str(bill_id).strip().lower() in ["", "undefined", "null"]:
+        raise HTTPException(status_code=400, detail="Invalid electricity record ID.")
+
+    try:
+        bill_uuid = parse_uuid(bill_id)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="Electricity record not found.")
+
+    res_bill = await db.table("electricity_bills").select("*").eq("id", bill_uuid).execute()
+    bill = res_bill.data[0] if res_bill.data else None
+    if not bill:
+        raise HTTPException(status_code=404, detail="Electricity record not found.")
+        
+    if user["role"] == "hostel_admin" and str(bill.get("hostel_id")) != str(user.get("hostel_id")):
+        raise HTTPException(status_code=403, detail="Permission denied. You can only delete entries for your own property.")
+    elif user["role"] not in ["super_admin", "hostel_admin"]:
+        raise HTTPException(status_code=403, detail="Permission denied.")
+
+    await db.table("electricity_bills").delete().eq("id", bill_uuid).execute()
+
+    # Log audit activity
+    try:
+        await db.table("activity_logs").insert({
+            "user_id": str(user["id"]),
+            "user_name": user.get("name", ""),
+            "hostel_id": bill.get("hostel_id"),
+            "action": "electricity_bill_deleted",
+            "entity_type": "electricity_bill",
+            "entity_id": str(bill_uuid),
+            "details": f"Deleted electricity bill for {bill.get('resident_name', '')} ({bill.get('billing_month')}/{bill.get('billing_year')}), Amount: ₹{bill.get('total_amount')}",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }).execute()
+    except Exception as log_err:
+        logger.warning(f"Failed to write audit log: {log_err}")
+
+    return {
+        "success": True,
+        "message": "Electricity entry deleted successfully."
+    }
+
+@router.delete("/bills/{bill_id}")
+async def delete_bill_endpoint(bill_id: str, request: Request):
+    return await perform_delete_bill(bill_id, request)
+
+@router.delete("/{bill_id}")
+async def delete_bill_alt_endpoint(bill_id: str, request: Request):
+    return await perform_delete_bill(bill_id, request)
+
+@router.post("/bills/{bill_id}/delete")
+async def delete_bill_post_endpoint(bill_id: str, request: Request):
+    return await perform_delete_bill(bill_id, request)
+
+@router.post("/{bill_id}/delete")
+async def delete_bill_alt_post_endpoint(bill_id: str, request: Request):
+    return await perform_delete_bill(bill_id, request)
+
+async def perform_undo_bill(bill_id: str, request: Request):
+    db = get_db()
+    user = await get_current_user(request, db)
+    
+    if not bill_id or str(bill_id).strip().lower() in ["", "undefined", "null"]:
+        raise HTTPException(status_code=400, detail="Invalid electricity record ID.")
+
+    try:
+        bill_uuid = parse_uuid(bill_id)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="Electricity record not found.")
+
+    res_bill = await db.table("electricity_bills").select("*").eq("id", bill_uuid).execute()
+    bill = res_bill.data[0] if res_bill.data else None
+    if not bill:
+        raise HTTPException(status_code=404, detail="Electricity record not found.")
+        
+    if user["role"] == "hostel_admin" and str(bill.get("hostel_id")) != str(user.get("hostel_id")):
+        raise HTTPException(status_code=403, detail="Permission denied. You can only undo entries for your own hostel.")
+    elif user["role"] not in ["super_admin", "hostel_admin"]:
+        raise HTTPException(status_code=403, detail="Permission denied.")
+
+    await db.table("electricity_bills").delete().eq("id", bill_uuid).execute()
+
+    # Log audit activity
+    try:
+        await db.table("activity_logs").insert({
+            "user_id": str(user["id"]),
+            "user_name": user.get("name", ""),
+            "hostel_id": bill.get("hostel_id"),
+            "action": "electricity_bill_undone",
+            "entity_type": "electricity_bill",
+            "entity_id": str(bill_uuid),
+            "details": f"Undone electricity bill for {bill.get('resident_name', '')} ({bill.get('billing_month')}/{bill.get('billing_year')}), Amount: ₹{bill.get('total_amount')}",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }).execute()
+    except Exception as log_err:
+        logger.warning(f"Failed to write audit log: {log_err}")
+
+    return {
+        "success": True,
+        "message": "Electricity entry undone successfully."
+    }
+
+@router.post("/bills/{bill_id}/undo")
+async def undo_bill_endpoint(bill_id: str, request: Request):
+    return await perform_undo_bill(bill_id, request)
+
+@router.post("/{bill_id}/undo")
+async def undo_bill_alt_endpoint(bill_id: str, request: Request):
+    return await perform_undo_bill(bill_id, request)
 
 @router.post("/generate-monthly")
 async def generate_monthly_bills(request: Request, month: int = Query(...), year: int = Query(...)):

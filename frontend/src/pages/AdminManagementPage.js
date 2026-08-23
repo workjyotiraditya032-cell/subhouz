@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Pencil, Trash2, Shield, ShieldOff, Key, ToggleLeft, ToggleRight, Building2 } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Shield, ShieldOff, Key, ToggleLeft, ToggleRight, Building2, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -20,7 +20,7 @@ export default function AdminManagementPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ 
-    email: '', password: '', name: '', role: 'hostel_admin', hostel_id: '', phone: '',
+    email: '', password: '', name: '', role: 'hostel_admin', hostel_id: '', phone: '', avatar: '',
     sec_school: '', sec_mother: '', sec_father: '' 
   });
 
@@ -35,6 +35,32 @@ export default function AdminManagementPage() {
       .catch(console.error).finally(() => setLoading(false));
   };
   useEffect(() => { fetchUsers(); }, []);
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate format: JPG, JPEG, PNG, WEBP
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      toast.error('Invalid image format. Supported formats: JPG, JPEG, PNG, WEBP.');
+      return;
+    }
+
+    // Validate size: Max 5 MB
+    const maxSizeInBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeInBytes) {
+      toast.error('File size exceeds 5MB limit.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm(prev => ({ ...prev, avatar: reader.result }));
+      toast.success('Profile photo selected');
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
     try {
@@ -92,7 +118,7 @@ export default function AdminManagementPage() {
   const openEdit = (u) => {
     setEditing(u.id);
     setForm({ 
-      email: u.email, password: '', name: u.name, role: u.role, hostel_id: u.hostel_id || '', phone: u.phone || '',
+      email: u.email, password: '', name: u.name, role: u.role, hostel_id: u.hostel_id || '', phone: u.phone || '', avatar: u.avatar || '',
       sec_school: u.sec_school || '', sec_mother: u.sec_mother || '', sec_father: u.sec_father || ''
     });
     setDialogOpen(true);
@@ -100,26 +126,71 @@ export default function AdminManagementPage() {
 
   return (
     <div className="space-y-6" data-testid="admin-management-page">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Admin Management</h1>
           <p className="text-sm text-[#64748B] mt-1">Manage hostel administrator accounts</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="create-admin-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white" onClick={() => { setEditing(null); setForm({ email: '', password: '', name: '', role: 'hostel_admin', hostel_id: '', phone: '', sec_school: '', sec_mother: '', sec_father: '' }); }}>
+            <Button data-testid="create-admin-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white w-full sm:w-auto" onClick={() => { setEditing(null); setForm({ email: '', password: '', name: '', role: 'hostel_admin', hostel_id: '', phone: '', avatar: '', sec_school: '', sec_mother: '', sec_father: '' }); }}>
               <UserPlus className="w-4 h-4 mr-2" /> Create Admin
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit User' : 'Create New Admin'}</DialogTitle></DialogHeader>
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+              {/* Profile Photo Upload */}
+              <div>
+                <Label className="text-xs font-medium text-slate-700 block mb-1.5">Profile Photo</Label>
+                <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div className="w-14 h-14 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center shrink-0">
+                    {form.avatar ? (
+                      <img src={form.avatar} alt="Avatar preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold text-slate-500">{form.name?.charAt(0) || 'U'}</span>
+                    )}
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="admin-photo-input"
+                        className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-slate-500" />
+                        <span>{form.avatar ? 'Change Photo' : 'Choose Image'}</span>
+                      </label>
+                      <input
+                        id="admin-photo-input"
+                        data-testid="admin-profile-photo-input"
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                      />
+                      {form.avatar && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setForm(prev => ({ ...prev, avatar: '' }))}
+                          className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500">JPG, JPEG, PNG, WEBP (Max 5MB)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div><Label className="text-xs">Name *</Label><Input data-testid="admin-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                 <div><Label className="text-xs">Email *</Label><Input data-testid="admin-email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
               </div>
               {!editing && <div><Label className="text-xs">Password *</Label><Input data-testid="admin-password" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} /></div>}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div><Label className="text-xs">Phone</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
                 <div>
                   <Label className="text-xs">Role</Label>
@@ -198,7 +269,11 @@ export default function AdminManagementPage() {
                 <TableRow key={u.id} className="hover:bg-[#F8FAFC]" data-testid={`admin-row-${u.id}`}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#1D4ED8]/10 flex items-center justify-center text-xs font-bold text-[#1D4ED8]">{u.name?.charAt(0)}</div>
+                      {u.avatar ? (
+                        <img src={u.avatar} alt={u.name} className="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-xs" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-[#1D4ED8]/10 flex items-center justify-center text-xs font-bold text-[#1D4ED8]">{u.name?.charAt(0)}</div>
+                      )}
                       <div>
                         <p className="font-medium text-sm text-[#0F172A]">{u.name}</p>
                         <p className="text-xs text-[#94A3B8]">{u.email}</p>

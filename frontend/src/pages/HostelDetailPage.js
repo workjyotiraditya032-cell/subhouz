@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
-import { MapPin, Phone, Mail, Star, ArrowLeft, ArrowRight, Wifi, Shield, Camera, Car, Dumbbell, UtensilsCrossed, Waves, Wind, Droplets, Sun, Building2, Users, DoorOpen, Check, Menu, X, Send } from 'lucide-react';
+import {
+  MapPin, Phone, Mail, Star, ArrowLeft, ArrowRight, Wifi, Shield, Camera, Car,
+  Dumbbell, UtensilsCrossed, Waves, Wind, Droplets, Sun, Building2, Users,
+  DoorOpen, Check, Menu, X, Send, Zap, Shirt, Bath, ArrowUpDown, Sparkles,
+  Flame, BookOpen, Archive, TreePine, Gamepad2, Globe, BatteryCharging,
+  CarFront, GlassWater
+} from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -24,9 +30,41 @@ const ROOM_IMAGES = [
 ];
 
 const FACILITY_ICONS = {
-  'Wi-Fi': Wifi, 'CCTV': Camera, '24/7 Security': Shield, 'Parking': Car, 'Gym Access': Dumbbell,
-  'Mess / Tiffin': UtensilsCrossed, 'Laundry': Waves, 'AC Rooms': Wind, 'Attached Bathroom': Droplets,
-  'Power Backup': Sun, 'Water Purifier': Droplets, 'Common Kitchen': UtensilsCrossed, 'Balcony Rooms': Building2,
+  'Wi-Fi': Wifi,
+  'Washing Machine': Waves,
+  'Water / RO Filter': Droplets,
+  'Common Kitchen': UtensilsCrossed,
+  'Common Areas': Users,
+  'CCTV Security': Camera,
+  'CCTV': Camera,
+  '24/7 Security': Shield,
+  'Power Backup': Zap,
+  'Parking': Car,
+  'Laundry': Shirt,
+  'Gym': Dumbbell,
+  'Gym Access': Dumbbell,
+  'Attached Bathroom': Bath,
+  'Lift': ArrowUpDown,
+  'Housekeeping': Sparkles,
+  'Mess / Tiffin': UtensilsCrossed,
+  'Refrigerator': UtensilsCrossed,
+  'Air Conditioning': Wind,
+  'AC Rooms': Wind,
+  'Geyser': Flame,
+  'Study Table': BookOpen,
+  'Wardrobe': Archive,
+  'Balcony': Building2,
+  'Balcony Rooms': Building2,
+  'Garden': TreePine,
+  'Visitor Parking': CarFront,
+  'Drinking Water': GlassWater,
+  'Fire Safety': Shield,
+  'Bike Parking': Car,
+  'Four Wheeler Parking': Car,
+  'Indoor Games': Gamepad2,
+  'High Speed Internet': Globe,
+  'Generator Backup': BatteryCharging,
+  'Water Purifier': Droplets,
 };
 
 function FadeIn({ children, className = '', delay = 0 }) {
@@ -160,17 +198,17 @@ export default function HostelDetailPage() {
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{h.name}</h1>
               <p className="text-white/70 text-sm flex items-center gap-1.5 mt-2"><MapPin className="w-4 h-4" /> {h.address}, {h.city}, {h.state}</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/10">
-                <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 text-center border border-white/10 flex-1 sm:flex-none">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
                   <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span className="text-white text-xl font-bold">{h.average_rating}</span>
+                  <span className="text-white text-lg sm:text-xl font-bold">{h.average_rating}</span>
                 </div>
                 <p className="text-white/50 text-[10px] uppercase tracking-wider">{h.review_count} reviews</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/10">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 text-center border border-white/10 flex-1 sm:flex-none">
                 <p className="text-xs text-white/50 uppercase tracking-wider">From</p>
-                <p className="text-white text-xl font-bold" style={{ fontFamily: "'Fraunces', serif" }}>₹{h.starting_rent?.toLocaleString()}</p>
+                <p className="text-white text-lg sm:text-xl font-bold" style={{ fontFamily: "'Fraunces', serif" }}>₹{h.starting_rent?.toLocaleString()}</p>
                 <p className="text-white/50 text-[10px]">per month</p>
               </div>
             </div>
@@ -211,22 +249,28 @@ export default function HostelDetailPage() {
               </div>
             </FadeIn>
 
-            {/* Facilities */}
+            {/* Facilities & Amenities */}
             <FadeIn>
               <h2 className="text-xl font-semibold tracking-tight mb-4" style={{ fontFamily: "'Fraunces', serif" }}>Facilities & Amenities</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {(h.facilities || []).map((f, i) => {
-                  const FIcon = FACILITY_ICONS[f] || Shield;
-                  return (
-                    <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-[#E8E0D8]">
-                      <div className="w-9 h-9 rounded-lg bg-[#2D5F3F]/8 flex items-center justify-center shrink-0">
-                        <FIcon className="w-4 h-4 text-[#2D5F3F]" />
+              {(!h.amenities || h.amenities.length === 0) && (!h.facilities || h.facilities.length === 0) ? (
+                <div className="bg-white rounded-xl px-5 py-6 border border-[#E8E0D8] text-center" data-testid="no-amenities-msg">
+                  <p className="text-sm text-[#8C7E72] italic">No amenities available.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" data-testid="property-amenities-grid">
+                  {(h.amenities?.length ? h.amenities : h.facilities || []).map((f, i) => {
+                    const FIcon = FACILITY_ICONS[f] || Sparkles;
+                    return (
+                      <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border border-[#E8E0D8]" data-testid={`amenity-item-${f.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                        <div className="w-9 h-9 rounded-lg bg-[#2D5F3F]/8 flex items-center justify-center shrink-0">
+                          <FIcon className="w-4 h-4 text-[#2D5F3F]" />
+                        </div>
+                        <span className="text-sm font-medium text-[#1C1917]">{f}</span>
                       </div>
-                      <span className="text-sm font-medium text-[#1C1917]">{f}</span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </FadeIn>
 
             {/* Available rooms */}

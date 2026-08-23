@@ -397,7 +397,7 @@ export default function AutomationConfigModal({ open, onClose, workflow, onSave,
                   </div>
 
                   {/* Settings Row */}
-                  <div className="grid grid-cols-3 gap-3 bg-[#FAF7F2]/40 p-3.5 rounded-2xl border border-[#FAF7F2]">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#FAF7F2]/40 p-3.5 rounded-2xl border border-[#FAF7F2]">
                     <div>
                       <Label className="text-xs font-semibold text-[#1C1917]">Send Time</Label>
                       <Select

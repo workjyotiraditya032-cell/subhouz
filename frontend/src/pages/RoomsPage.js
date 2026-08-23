@@ -139,9 +139,9 @@ export default function RoomsPage() {
           <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Rooms & Beds</h1>
           <p className="text-sm text-[#64748B] mt-1">{filteredRooms.length} rooms found</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Select value={bathroomFilter} onValueChange={setBathroomFilter}>
-            <SelectTrigger className="w-44 text-xs h-9" data-testid="bathroom-filter-select">
+            <SelectTrigger className="w-full sm:w-44 text-xs h-9" data-testid="bathroom-filter-select">
               <SelectValue placeholder="Filter Bathroom" />
             </SelectTrigger>
             <SelectContent>
@@ -153,7 +153,7 @@ export default function RoomsPage() {
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="add-room-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white" onClick={() => { setEditing(null); resetForm(); }}>
+              <Button data-testid="add-room-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white w-full sm:w-auto" onClick={() => { setEditing(null); resetForm(); }}>
                 <Plus className="w-4 h-4 mr-2" /> Add Room
               </Button>
             </DialogTrigger>
@@ -169,11 +169,11 @@ export default function RoomsPage() {
                     </Select>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div><Label className="text-xs">Room Number *</Label><Input data-testid="room-number-input" value={form.room_number} onChange={e => setForm({...form, room_number: e.target.value})} /></div>
                   <div><Label className="text-xs">Floor</Label><Input type="number" value={form.floor_number} onChange={e => setForm({...form, floor_number: e.target.value})} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-xs">Type</Label>
                     <Select value={form.room_type} onValueChange={v => setForm({...form, room_type: v})}>
@@ -189,7 +189,7 @@ export default function RoomsPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div><Label className="text-xs">Capacity (beds) *</Label><Input type="number" min={1} value={form.capacity} onChange={e => setForm({...form, capacity: e.target.value})} /></div>
                   <div><Label className="text-xs">Monthly Rent (₹) *</Label><Input type="number" value={form.rent} onChange={e => setForm({...form, rent: e.target.value})} /></div>
                 </div>

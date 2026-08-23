@@ -2,10 +2,11 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
+import json
+import logging
 from database import get_db, parse_uuid
 from auth import get_current_user
 from services.search_db import get_property_metadata, save_or_update_property_metadata
-import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/hostels", tags=["hostels"])
@@ -23,6 +24,7 @@ class HostelCreate(BaseModel):
     monthly_due_date: int = 5
     reminder_grace_days: int = 3
     follow_up_days: int = 7
+    amenities: Optional[List[str]] = None
     
     # Advanced metadata fields
     latitude: Optional[float] = None
@@ -52,6 +54,7 @@ class HostelUpdate(BaseModel):
     monthly_due_date: Optional[int] = None
     reminder_grace_days: Optional[int] = None
     follow_up_days: Optional[int] = None
+    amenities: Optional[List[str]] = None
     
     # Advanced metadata fields
     latitude: Optional[float] = None
@@ -99,33 +102,22 @@ async def list_hostels_public():
         res_cheapest = await db.table("rooms").select("rent").eq("hostel_id", h_id).gt("rent", 0).order("rent", desc=False).limit(1).execute()
         starting_rent = res_cheapest.data[0]["rent"] if res_cheapest.data else 0
 
-        # Facilities: derive from room features + defaults
-        res_rooms = await db.table("rooms").select("*").eq("hostel_id", h_id).execute()
-        rooms = res_rooms.data
-        
-        facilities = ["Wi-Fi", "Water Purifier", "24/7 Security", "CCTV", "Power Backup"]
-        has_ac = any(r.get("ac_type") == "ac" for r in rooms)
-        has_bathroom = any(r.get("has_attached_bathroom") or r.get("hasAttachedBathroom") or r.get("has_bathroom") for r in rooms)
-        has_balcony = any(r.get("has_balcony") for r in rooms)
-        if has_ac:
-            facilities.append("AC Rooms")
-        if has_bathroom:
-            facilities.append("Attached Bathroom")
-        if has_balcony:
-            facilities.append("Balcony Rooms")
+        meta = get_property_metadata(h_id) or {}
+        raw_fac = meta.get("facilities")
+        if raw_fac:
+            try:
+                facilities = json.loads(raw_fac) if isinstance(raw_fac, str) else raw_fac
+            except Exception:
+                facilities = []
+        else:
+            facilities = []
             
-        # Add hostel-type-specific defaults
-        if h.get("hostel_type") in ("boys", "mixed"):
-            facilities.extend(["Parking", "Gym Access"])
-        if h.get("hostel_type") in ("girls", "mixed"):
-            facilities.extend(["Laundry", "Common Kitchen"])
-        facilities.append("Mess / Tiffin")
+        facilities = [f for f in facilities if f]
 
         # Average rating (seeded / computed)
         avg_rating = float(h.get("average_rating") or 0.0)
         review_count = int(h.get("review_count") or 0)
 
-        meta = get_property_metadata(h_id) or {}
         lat = meta.get("latitude") if meta.get("latitude") is not None else 20.5937
         lng = meta.get("longitude") if meta.get("longitude") is not None else 78.9629
         area = meta.get("area") or "Central"
@@ -152,6 +144,7 @@ async def list_hostels_public():
             "average_rating": avg_rating,
             "review_count": review_count,
             "facilities": list(dict.fromkeys(facilities)),  # dedupe, preserve order
+            "amenities": list(dict.fromkeys(facilities)),
             "latitude": lat,
             "longitude": lng,
             "area": area,
@@ -169,7 +162,7 @@ async def get_hostel_public(hostel_id: str):
     res_hostel = await db.table("hostels").select("*").eq("id", h_uuid).execute()
     hostel = res_hostel.data[0] if res_hostel.data else None
     if not hostel:
-        raise HTTPException(status_code=404, detail="Hostel not found")
+        raise HTTPException(status_code=404, detail="Property not found")
         
     h_id = str(hostel["id"])
 
@@ -224,23 +217,21 @@ async def get_hostel_public(hostel_id: str):
     occupancy_rate = round((occupied_beds / total_beds * 100), 1) if total_beds > 0 else 0
     cheapest = min((r["rent"] for r in room_list if r.get("rent") and r["rent"] > 0), default=0)
 
-    facilities = ["Wi-Fi", "Water Purifier", "24/7 Security", "CCTV", "Power Backup"]
-    if any(r["ac_type"] == "ac" for r in room_list):
-        facilities.append("AC Rooms")
-    if any(r.get("has_attached_bathroom") or r.get("hasAttachedBathroom") or r.get("has_bathroom") for r in room_list):
-        facilities.append("Attached Bathroom")
-    if any(r["has_balcony"] for r in room_list):
-        facilities.append("Balcony Rooms")
-    if hostel.get("hostel_type") in ("boys", "mixed"):
-        facilities.extend(["Parking", "Gym Access"])
-    if hostel.get("hostel_type") in ("girls", "mixed"):
-        facilities.extend(["Laundry", "Common Kitchen"])
-    facilities.append("Mess / Tiffin")
+    meta = get_property_metadata(h_id) or {}
+    raw_fac = meta.get("facilities")
+    if raw_fac:
+        try:
+            facilities = json.loads(raw_fac) if isinstance(raw_fac, str) else raw_fac
+        except Exception:
+            facilities = []
+    else:
+        facilities = []
+        
+    facilities = [f for f in facilities if f]
 
     avg_rating = float(hostel.get("average_rating") or 0.0)
     review_count = int(hostel.get("review_count") or 0)
 
-    meta = get_property_metadata(h_id) or {}
     lat = meta.get("latitude") if meta.get("latitude") is not None else 20.5937
     lng = meta.get("longitude") if meta.get("longitude") is not None else 78.9629
     area = meta.get("area") or "Central"
@@ -267,6 +258,7 @@ async def get_hostel_public(hostel_id: str):
         "average_rating": avg_rating,
         "review_count": review_count,
         "facilities": list(dict.fromkeys(facilities)),
+        "amenities": list(dict.fromkeys(facilities)),
         "rooms": sorted(room_list, key=lambda r: r.get("room_number", "")),
         "latitude": lat,
         "longitude": lng,
@@ -287,9 +279,25 @@ async def list_hostels(request: Request):
         res_hostels = await db.table("hostels").select("*").eq("id", h_uuid).execute()
         hostels = res_hostels.data
     
+    from services.search_db import get_all_property_metadata
+    all_meta = get_all_property_metadata()
+
     for h in hostels:
         h["_id"] = str(h["id"])
         h["id"] = h["_id"]
+        
+        # Attach amenities
+        meta = all_meta.get(h["id"]) or {}
+        raw_fac = meta.get("facilities")
+        if raw_fac:
+            try:
+                fac = json.loads(raw_fac) if isinstance(raw_fac, str) else raw_fac
+            except Exception:
+                fac = []
+        else:
+            fac = []
+        h["amenities"] = fac
+        h["facilities"] = fac
         
         # Compute live stats
         res_rooms_cnt = await db.table("rooms").select("id", count="exact").eq("hostel_id", h["id"]).execute()
@@ -317,10 +325,24 @@ async def get_hostel(hostel_id: str, request: Request):
     res_hostel = await db.table("hostels").select("*").eq("id", h_uuid).execute()
     hostel = res_hostel.data[0] if res_hostel.data else None
     if not hostel:
-        raise HTTPException(status_code=404, detail="Hostel not found")
+        raise HTTPException(status_code=404, detail="Property not found")
         
     hostel["_id"] = str(hostel["id"])
     hostel["id"] = hostel["_id"]
+    
+    meta = get_property_metadata(hostel_id) or {}
+    raw_fac = meta.get("facilities")
+    if raw_fac:
+        if isinstance(raw_fac, str):
+            try:
+                hostel["facilities"] = json.loads(raw_fac)
+            except Exception:
+                hostel["facilities"] = [f.strip() for f in raw_fac.split(",") if f.strip()]
+        elif isinstance(raw_fac, list):
+            hostel["facilities"] = raw_fac
+    else:
+        hostel["facilities"] = []
+    hostel["amenities"] = hostel["facilities"]
     
     res_rooms_cnt = await db.table("rooms").select("id", count="exact").eq("hostel_id", hostel_id).execute()
     hostel["total_rooms"] = res_rooms_cnt.count or 0
@@ -341,28 +363,32 @@ async def create_hostel(req: HostelCreate, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
-        raise HTTPException(status_code=403, detail="Only Super Admin can create hostels")
+        raise HTTPException(status_code=403, detail="Only Super Admin can create properties")
     
     doc = req.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["updated_at"] = datetime.now(timezone.utc).isoformat()
     doc["images"] = []
     
-    # Extract advanced search metadata fields to prevent Supabase column mismatch
+    # Extract advanced search metadata and amenities fields to prevent Supabase column mismatch
     advanced_keys = [
         "latitude", "longitude", "nearby_colleges", "nearby_schools", "nearby_landmarks",
         "nearby_metro", "nearby_bus_stop", "aliases", "keywords", "tags",
-        "category", "property_type", "gender", "facilities", "area", "country"
+        "category", "property_type", "gender", "facilities", "amenities", "area", "country"
     ]
     advanced_updates = {k: doc.pop(k) for k in list(doc.keys()) if k in advanced_keys}
+    if "amenities" in advanced_updates and advanced_updates["amenities"] is not None:
+        advanced_updates["facilities"] = advanced_updates["amenities"]
     
     res_insert = await db.table("hostels").insert(doc).execute()
     if not res_insert.data:
-        raise HTTPException(status_code=500, detail="Failed to create hostel")
+        raise HTTPException(status_code=500, detail="Failed to create property")
         
     inserted_doc = res_insert.data[0]
     inserted_doc["_id"] = str(inserted_doc["id"])
     inserted_doc["id"] = inserted_doc["_id"]
+    inserted_doc["amenities"] = advanced_updates.get("amenities") or []
+    inserted_doc["facilities"] = inserted_doc["amenities"]
     
     # Save search coordinates and metadata index in SQLite database
     save_or_update_property_metadata(
@@ -381,7 +407,7 @@ async def create_hostel(req: HostelCreate, request: Request):
         "action": "hostel_created",
         "entity_type": "hostel",
         "entity_id": inserted_doc["id"],
-        "details": f"Created hostel: {req.name}",
+        "details": f"Created property: {req.name}",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }).execute()
     
@@ -392,27 +418,31 @@ async def update_hostel(hostel_id: str, req: HostelUpdate, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
-        raise HTTPException(status_code=403, detail="Only Super Admin can update hostels")
+        raise HTTPException(status_code=403, detail="Only Super Admin can update properties")
     
     h_uuid = parse_uuid(hostel_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    # Extract advanced search metadata fields to prevent Supabase column mismatch
+    # Extract advanced search metadata and amenities fields to prevent Supabase column mismatch
     advanced_keys = [
         "latitude", "longitude", "nearby_colleges", "nearby_schools", "nearby_landmarks",
         "nearby_metro", "nearby_bus_stop", "aliases", "keywords", "tags",
-        "category", "property_type", "gender", "facilities", "area", "country"
+        "category", "property_type", "gender", "facilities", "amenities", "area", "country"
     ]
     advanced_updates = {k: updates.pop(k) for k in list(updates.keys()) if k in advanced_keys}
+    if "amenities" in advanced_updates and advanced_updates["amenities"] is not None:
+        advanced_updates["facilities"] = advanced_updates["amenities"]
     
     res_update = await db.table("hostels").update(updates).eq("id", h_uuid).execute()
     if not res_update.data:
-        raise HTTPException(status_code=404, detail="Hostel not found")
+        raise HTTPException(status_code=404, detail="Property not found")
         
     hostel = res_update.data[0]
     hostel["_id"] = str(hostel["id"])
     hostel["id"] = hostel["_id"]
+    hostel["amenities"] = advanced_updates.get("amenities") or []
+    hostel["facilities"] = hostel["amenities"]
     
     # Update search coordinates and metadata index in SQLite database
     save_or_update_property_metadata(
@@ -431,10 +461,10 @@ async def delete_hostel(hostel_id: str, request: Request):
     db = get_db()
     user = await get_current_user(request, db)
     if user["role"] != "super_admin":
-        raise HTTPException(status_code=403, detail="Only Super Admin can delete hostels")
+        raise HTTPException(status_code=403, detail="Only Super Admin can delete properties")
         
     h_uuid = parse_uuid(hostel_id)
     res_del = await db.table("hostels").delete().eq("id", h_uuid).execute()
     if not res_del.data:
-        raise HTTPException(status_code=404, detail="Hostel not found")
-    return {"message": "Hostel deleted"}
+        raise HTTPException(status_code=404, detail="Property not found")
+    return {"message": "Property deleted successfully"}

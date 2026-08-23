@@ -2,8 +2,11 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 import asyncio
+import logging
 from database import get_db, parse_uuid
 from auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -209,6 +212,68 @@ async def get_dashboard_stats(request: Request, hostel_id: Optional[str] = Query
                     "pending_rent": h_residents - len(h_paid)
                 })
             
+    # Electricity Summary Metrics
+    q_elec = db.table("electricity_bills").select("*")
+    if hostel_query.get("hostel_id") and str(hostel_query["hostel_id"]).strip().lower() not in ["", "null", "undefined", "all"]:
+        try:
+            q_elec = q_elec.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+        except Exception as e:
+            logger.warning(f"Invalid hostel_id filter in electricity query: {e}")
+
+    res_elec = await q_elec.execute()
+    all_elec_bills = res_elec.data or []
+
+    total_elec_bills = len(all_elec_bills)
+    total_elec_amount = sum(float(b.get("total_amount", 0) or 0) for b in all_elec_bills)
+    
+    paid_elec_bills = [b for b in all_elec_bills if b.get("payment_status") == "paid"]
+    pending_elec_bills = [b for b in all_elec_bills if b.get("payment_status") != "paid"]
+    
+    elec_collected = sum(float(b.get("total_amount", 0) or 0) for b in paid_elec_bills)
+    elec_pending = sum(float(b.get("total_amount", 0) or 0) for b in pending_elec_bills)
+    
+    # Month specific electricity stats
+    month_elec_bills = [b for b in all_elec_bills if b.get("billing_month") == current_month and b.get("billing_year") == current_year]
+    month_elec_collected = sum(float(b.get("total_amount", 0) or 0) for b in month_elec_bills if b.get("payment_status") == "paid")
+    month_elec_pending = sum(float(b.get("total_amount", 0) or 0) for b in month_elec_bills if b.get("payment_status") != "paid")
+    
+    # Recent Electricity Bills (top 8)
+    q_recent_elec = db.table("electricity_bills").select("*")
+    if hostel_query.get("hostel_id") and str(hostel_query["hostel_id"]).strip().lower() not in ["", "null", "undefined", "all"]:
+        try:
+            q_recent_elec = q_recent_elec.eq("hostel_id", parse_uuid(hostel_query["hostel_id"]))
+        except Exception as e:
+            logger.warning(f"Invalid hostel_id filter in recent electricity query: {e}")
+            
+    q_recent_elec = q_recent_elec.order("created_at", desc=True).limit(8)
+    res_recent_elec = await q_recent_elec.execute()
+    recent_electricity_records = res_recent_elec.data or []
+    for eb in recent_electricity_records:
+        eb["_id"] = str(eb["id"])
+        eb["id"] = eb["_id"]
+        if eb.get("created_at"):
+            eb["created_at"] = str(eb["created_at"])
+
+    print(f"[DASHBOARD DEBUG] Electricity bills found: {total_elec_bills}, amount: {total_elec_amount}, collected: {elec_collected}, pending: {elec_pending}")
+
+    elec_payload = {
+        "totalBills": total_elec_bills,
+        "totalAmount": round(total_elec_amount, 2),
+        "collectedAmount": round(elec_collected, 2),
+        "pendingAmount": round(elec_pending, 2),
+        "paidBills": len(paid_elec_bills),
+        "pendingBills": len(pending_elec_bills),
+        "total_bills": total_elec_bills,
+        "total_amount": round(total_elec_amount, 2),
+        "collected": round(elec_collected, 2),
+        "pending": round(elec_pending, 2),
+        "paid_bills": len(paid_elec_bills),
+        "pending_bills": len(pending_elec_bills),
+        "month_collected": round(month_elec_collected, 2),
+        "month_pending": round(month_elec_pending, 2),
+        "month_bills": len(month_elec_bills),
+    }
+
     return {
         "total_hostels": total_hostels,
         "total_rooms": total_rooms,
@@ -229,7 +294,11 @@ async def get_dashboard_stats(request: Request, hostel_id: Optional[str] = Query
         "recent_activities": recent_activities,
         "hostel_breakdown": hostel_breakdown,
         "current_month": current_month,
-        "current_year": current_year
+        "current_year": current_year,
+        "electricity": elec_payload,
+        "electricity_summary": elec_payload,
+        "electricitySummary": elec_payload,
+        "recent_electricity_records": recent_electricity_records
     }
 
 @router.get("/activity-logs")

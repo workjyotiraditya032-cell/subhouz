@@ -9,6 +9,14 @@ from services.event_bus import EventBus, BOOKING_CONFIRMED, DOCUMENT_SUBMITTED, 
 
 router = APIRouter(prefix="/api/residents", tags=["residents"])
 
+def clean_and_validate_aadhaar_number(v: Optional[str]) -> Optional[str]:
+    if not v or not str(v).strip():
+        return None
+    cleaned = re.sub(r"\s+", "", str(v).strip())
+    if not re.match(r"^\d{12}$", cleaned):
+        raise ValueError("Aadhaar Number must be exactly 12 digits")
+    return cleaned
+
 class ResidentCreate(BaseModel):
     hostel_id: str
     room_id: Optional[str] = None
@@ -27,6 +35,7 @@ class ResidentCreate(BaseModel):
     permanent_address: Optional[str] = None
     id_type: Optional[str] = None
     id_number: Optional[str] = None
+    aadhaar_number: Optional[str] = None
     aadhaar_url: Optional[str] = None
     monthly_rent: float = 0
     security_deposit: float = 0
@@ -34,6 +43,11 @@ class ResidentCreate(BaseModel):
     check_in_date: Optional[str] = None
     agreement_start: Optional[str] = None
     agreement_end: Optional[str] = None
+
+    @field_validator("aadhaar_number")
+    @classmethod
+    def validate_aadhaar_number(cls, v):
+        return clean_and_validate_aadhaar_number(v)
 
     @field_validator("aadhaar_url")
     @classmethod
@@ -60,7 +74,13 @@ class ResidentUpdate(BaseModel):
     status: Optional[str] = None
     room_id: Optional[str] = None
     bed_id: Optional[str] = None
+    aadhaar_number: Optional[str] = None
     aadhaar_url: Optional[str] = None
+
+    @field_validator("aadhaar_number")
+    @classmethod
+    def validate_aadhaar_number(cls, v):
+        return clean_and_validate_aadhaar_number(v)
 
     @field_validator("aadhaar_url")
     @classmethod
@@ -91,6 +111,8 @@ async def list_residents(request: Request, hostel_id: Optional[str] = Query(None
     for r in residents:
         r["_id"] = str(r["id"])
         r["id"] = r["_id"]
+        r["aadhaar_number"] = r.get("aadhaar_number") or r.get("id_number") or None
+        r["aadhaar_url"] = r.get("aadhaar_url") or None
     return residents
 
 @router.get("/{resident_id}")
@@ -109,6 +131,8 @@ async def get_resident(resident_id: str, request: Request):
         
     resident["_id"] = str(resident["id"])
     resident["id"] = resident["_id"]
+    resident["aadhaar_number"] = resident.get("aadhaar_number") or resident.get("id_number") or None
+    resident["aadhaar_url"] = resident.get("aadhaar_url") or None
     
     # Get payment history
     res_payments = await db.table("rent_payments").select("*").eq("resident_id", res_uuid).order("year", desc=True).order("month", desc=True).execute()
@@ -136,6 +160,9 @@ async def create_resident(req: ResidentCreate, request: Request):
     doc["status"] = "active"
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if doc.get("aadhaar_number"):
+        doc["id_number"] = doc["aadhaar_number"]
+        doc["id_type"] = "aadhaar"
     
     # Resolve room/bed numbers
     if req.room_id:
@@ -163,6 +190,7 @@ async def create_resident(req: ResidentCreate, request: Request):
     resident_id = str(inserted_doc["id"])
     inserted_doc["_id"] = resident_id
     inserted_doc["id"] = resident_id
+    inserted_doc["aadhaar_number"] = inserted_doc.get("aadhaar_number") or inserted_doc.get("id_number") or None
     
     # Update bed status
     if req.bed_id:
@@ -197,6 +225,9 @@ async def update_resident(resident_id: str, req: ResidentUpdate, request: Reques
     res_uuid = parse_uuid(resident_id)
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    if "aadhaar_number" in updates and updates["aadhaar_number"]:
+        updates["id_number"] = updates["aadhaar_number"]
+        updates["id_type"] = "aadhaar"
     
     # Handle bed/room references conversion to UUID
     if "room_id" in updates and updates["room_id"]:
@@ -242,6 +273,7 @@ async def update_resident(resident_id: str, req: ResidentUpdate, request: Reques
     resident = res_update.data[0]
     resident["_id"] = str(resident["id"])
     resident["id"] = resident["_id"]
+    resident["aadhaar_number"] = resident.get("aadhaar_number") or resident.get("id_number") or None
     return resident
 
 @router.delete("/{resident_id}")
@@ -323,10 +355,23 @@ async def update_resident_documents(resident_id: str, request: Request):
         raise HTTPException(status_code=403, detail="Access denied")
         
     updates = {}
-    for field in ("aadhaar_url", "id_type", "id_number", "id_verified", "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relation"):
+    for field in ("aadhaar_number", "aadhaar_url", "id_type", "id_number", "id_verified", "emergency_contact_name", "emergency_contact_phone", "emergency_contact_relation"):
         if field in body:
             updates[field] = body[field]
-            
+
+    if "aadhaar_number" in updates:
+        val = updates["aadhaar_number"]
+        if val and str(val).strip():
+            try:
+                clean_num = clean_and_validate_aadhaar_number(val)
+                updates["aadhaar_number"] = clean_num
+                updates["id_number"] = clean_num
+                updates["id_type"] = "aadhaar"
+            except ValueError as ve:
+                raise HTTPException(status_code=400, detail=str(ve))
+        else:
+            updates["aadhaar_number"] = None
+
     if "aadhaar_url" in updates and updates["aadhaar_url"]:
         url = updates["aadhaar_url"]
         if not (url.startswith("http://") or url.startswith("https://")):

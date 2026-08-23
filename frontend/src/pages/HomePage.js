@@ -486,7 +486,7 @@ export default function HomePage() {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed top-0 right-0 h-full w-[280px] sm:w-[320px] bg-white shadow-2xl z-50 flex flex-col p-6 lg:hidden border-l border-[#EFEFEF]"
+                className="fixed inset-y-0 right-0 h-full w-[280px] max-w-[85vw] bg-white shadow-2xl z-50 flex flex-col p-5 sm:p-6 lg:hidden border-l border-[#EFEFEF]"
               >
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between pb-6 border-b border-[#EFEFEF]">

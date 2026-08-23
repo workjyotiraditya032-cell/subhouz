@@ -117,6 +117,7 @@ CREATE TABLE residents (
     permanent_address TEXT,
     id_type TEXT,
     id_number TEXT,
+    aadhaar_number TEXT,
     aadhaar_url TEXT,
     monthly_rent NUMERIC NOT NULL DEFAULT 0,
     security_deposit NUMERIC NOT NULL DEFAULT 0,

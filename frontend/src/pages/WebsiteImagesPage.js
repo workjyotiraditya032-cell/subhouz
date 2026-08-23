@@ -36,11 +36,11 @@ const CATEGORIES = [
 
   { value: "advertisement", label: "Advertisements" },
 
-  // Hostels
+  // Properties
 
-  { value: "hostel_cover", label: "Hostel Cover" },
+  { value: "hostel_cover", label: "Property Cover" },
 
-  { value: "hostel_gallery", label: "Hostel Gallery" },
+  { value: "hostel_gallery", label: "Property Gallery" },
 
   // Rooms
 
@@ -185,18 +185,18 @@ const [search, setSearch] = useState("");
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
 
         <Input
           placeholder="Search images..."
-          className="w-72"
+          className="w-full sm:w-72"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         <Button
           data-testid="upload-image-btn"
-          className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white"
+          className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white w-full sm:w-auto"
           onClick={openNew}
         >
           <Upload className="w-4 h-4 mr-2" />

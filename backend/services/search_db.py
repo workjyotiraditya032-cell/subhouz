@@ -292,7 +292,8 @@ def save_or_update_property_metadata(hostel_id: str, name: str, address: str, ci
         aliases = json.dumps(updates.get("aliases")) if updates.get("aliases") is not None else existing_dict["aliases"]
         keywords = json.dumps(updates.get("keywords")) if updates.get("keywords") is not None else existing_dict["keywords"]
         tags = json.dumps(updates.get("tags")) if updates.get("tags") is not None else existing_dict["tags"]
-        facilities = json.dumps(updates.get("facilities")) if updates.get("facilities") is not None else existing_dict["facilities"]
+        amenities_val = updates.get("amenities") if updates.get("amenities") is not None else updates.get("facilities")
+        facilities = json.dumps(amenities_val) if amenities_val is not None else existing_dict["facilities"]
         
         category = updates.get("category") or existing_dict["category"] or "Hostel"
         property_type = updates.get("property_type") or existing_dict["property_type"] or "Hostel"
@@ -318,7 +319,9 @@ def save_or_update_property_metadata(hostel_id: str, name: str, address: str, ci
         aliases = json.dumps(updates.get("aliases") or [])
         keywords = json.dumps(updates.get("keywords") or [])
         tags = json.dumps(updates.get("tags") or [])
-        facilities = json.dumps(updates.get("facilities") or [])
+        
+        amenities_val = updates.get("amenities") if updates.get("amenities") is not None else updates.get("facilities")
+        facilities = json.dumps(amenities_val or [])
         
         category = updates.get("category") or "Hostel"
         property_type = updates.get("property_type") or "Hostel"

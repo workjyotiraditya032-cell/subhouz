@@ -18,6 +18,7 @@ class CreateAdminRequest(BaseModel):
     role: str = "hostel_admin"
     hostel_id: Optional[str] = None
     phone: Optional[str] = None
+    avatar: Optional[str] = None
     sec_school: Optional[str] = None
     sec_mother: Optional[str] = None
     sec_father: Optional[str] = None
@@ -28,6 +29,7 @@ class UpdateAdminRequest(BaseModel):
     phone: Optional[str] = None
     hostel_id: Optional[str] = None
     role: Optional[str] = None
+    avatar: Optional[str] = None
     sec_school: Optional[str] = None
     sec_mother: Optional[str] = None
     sec_father: Optional[str] = None
@@ -43,7 +45,7 @@ async def list_admin_users(request: Request):
     if user["role"] != "super_admin":
         raise HTTPException(status_code=403, detail="Access denied")
         
-    res_users = await db.table("users").select("id,email,name,role,hostel_id,phone,disabled,created_at,updated_at").execute()
+    res_users = await db.table("users").select("id,email,name,role,hostel_id,phone,avatar,disabled,created_at,updated_at").execute()
     users = res_users.data
     
     for u in users:
@@ -100,6 +102,7 @@ async def create_admin_user(req: CreateAdminRequest, request: Request):
         "role": req.role,
         "hostel_id": hostel_id,
         "phone": req.phone,
+        "avatar": req.avatar,
         "disabled": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -124,7 +127,7 @@ async def create_admin_user(req: CreateAdminRequest, request: Request):
         "timestamp": datetime.now(timezone.utc).isoformat()
     }).execute()
     
-    return {"id": inserted_id, "email": email, "name": req.name, "role": req.role}
+    return {"id": inserted_id, "email": email, "name": req.name, "role": req.role, "avatar": req.avatar}
 
 @router.put("/users/{user_id}")
 async def update_admin_user(user_id: str, req: UpdateAdminRequest, request: Request):
