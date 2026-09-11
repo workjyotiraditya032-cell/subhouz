@@ -13,7 +13,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
-import api from '../lib/api';
+import api, { formatApiError } from '../lib/api';
+
+const toISODateString = (val) => {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return s;
+};
+
+const getTodayLocalDate = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 export default function ResidentsPage() {
   const { user } = useAuth();
@@ -29,12 +51,77 @@ export default function ResidentsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [form, setForm] = useState({ hostel_id: '', name: '', phone: '', email: '', whatsapp: '', gender: 'male', occupation: '', workplace: '', room_id: '', bed_id: '', monthly_rent: 0, security_deposit: 0, guardian_name: '', guardian_phone: '', guardian_relation: '', permanent_address: '', check_in_date: '', agreement_start: '', agreement_end: '', aadhaar_number: '', aadhaar_url: '' });
   const [beds, setBeds] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [docForm, setDocForm] = useState({ aadhaar_number: '', aadhaar_url: '', id_verified: false, emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relation: '' });
 
   const formatAadhaarInput = (val) => {
     if (!val) return '';
     const digitsOnly = String(val).replace(/\D/g, '');
     return digitsOnly.slice(0, 12);
+  };
+
+  const updateField = (key, val) => {
+    setForm(prev => ({ ...prev, [key]: val }));
+    if (errors[key]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+    if (formError) setFormError('');
+  };
+
+  const validateForm = (formData, hostelId) => {
+    const errs = {};
+    if (!hostelId) {
+      errs.hostel_id = 'Please select a property';
+    }
+    if (!formData.name || !formData.name.trim()) {
+      errs.name = 'Resident name is required';
+    }
+    if (!formData.phone || !formData.phone.trim()) {
+      errs.phone = 'Phone number is required';
+    } else {
+      const digitsOnly = formData.phone.replace(/\D/g, '');
+      if (digitsOnly.length < 10) {
+        errs.phone = 'Phone number must contain at least 10 digits';
+      }
+    }
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        errs.email = 'Please enter a valid email address';
+      }
+    }
+    if (formData.guardian_phone && formData.guardian_phone.trim()) {
+      const gDigits = formData.guardian_phone.replace(/\D/g, '');
+      if (gDigits.length < 10) {
+        errs.guardian_phone = 'Guardian phone must be at least 10 digits';
+      }
+    }
+    if (formData.aadhaar_number && formData.aadhaar_number.trim()) {
+      const aDigits = formData.aadhaar_number.replace(/\D/g, '');
+      if (aDigits.length !== 12) {
+        errs.aadhaar_number = 'Aadhaar Number must be exactly 12 digits';
+      }
+    }
+    if (formData.aadhaar_url && formData.aadhaar_url.trim()) {
+      const url = formData.aadhaar_url.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        errs.aadhaar_url = 'Aadhaar URL must start with http:// or https://';
+      }
+    }
+    if (formData.agreement_start && formData.agreement_end) {
+      const s = toISODateString(formData.agreement_start);
+      const e = toISODateString(formData.agreement_end);
+      if (s && e && e < s) {
+        errs.agreement_end = 'Agreement End date cannot be earlier than Agreement Start date';
+      }
+    }
+    return errs;
   };
 
   const fetchResidents = () => {
@@ -46,29 +133,129 @@ export default function ResidentsPage() {
   useEffect(() => { fetchResidents(); }, [selectedHostel]); // eslint-disable-line
   useEffect(() => {
     const hostelId = selectedHostel?.id || user?.hostel_id;
-    if (hostelId) api.get('/rooms', { params: { hostel_id: hostelId } }).then(res => setRooms(res.data)).catch(() => {});
-    if (user?.role === 'super_admin') api.get('/hostels').then(res => setHostels(res.data)).catch(() => {});
-  }, [selectedHostel, user]);
+    if (hostelId) {
+      api.get('/rooms', { params: { hostel_id: hostelId } }).then(res => setRooms(res.data || [])).catch(() => {});
+    }
+    if (user?.role === 'super_admin') {
+      api.get('/hostels').then(res => {
+        const list = res.data || [];
+        setHostels(list);
+        if (!selectedHostel?.id && list.length > 0 && !form.hostel_id) {
+          const defaultId = list[0].id;
+          setForm(f => ({ ...f, hostel_id: defaultId }));
+          api.get('/rooms', { params: { hostel_id: defaultId } }).then(r => setRooms(r.data || [])).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  }, [selectedHostel, user]); // eslint-disable-line
+
+  // Automatically fetch rooms whenever the dialog is open and form.hostel_id is set
+  useEffect(() => {
+    const targetHostel = form.hostel_id || selectedHostel?.id || user?.hostel_id;
+    if (dialogOpen && targetHostel) {
+      api.get('/rooms', { params: { hostel_id: targetHostel } })
+        .then(res => setRooms(res.data || []))
+        .catch(console.error);
+    }
+  }, [dialogOpen, form.hostel_id]); // eslint-disable-line
 
   const fetchBeds = async (roomId) => {
     if (!roomId) { setBeds([]); return; }
     try { const res = await api.get(`/rooms/${roomId}`); setBeds((res.data.beds || []).filter(b => b.status === 'available')); } catch { setBeds([]); }
   };
 
+  const handleHostelChange = (hostelId) => {
+    updateField('hostel_id', hostelId);
+    setForm(prev => ({ ...prev, hostel_id: hostelId, room_id: '', bed_id: '' }));
+    setBeds([]);
+    if (hostelId) {
+      api.get('/rooms', { params: { hostel_id: hostelId } })
+        .then(res => setRooms(res.data || []))
+        .catch(console.error);
+    } else {
+      setRooms([]);
+    }
+  };
+
+  const handleRoomChange = (roomId) => {
+    const rm = rooms.find(r => r.id === roomId);
+    setForm(prev => ({
+      ...prev,
+      room_id: roomId,
+      bed_id: '',
+      monthly_rent: rm ? (rm.rent || rm.monthly_rent || prev.monthly_rent) : prev.monthly_rent
+    }));
+    if (errors.room_id) {
+      setErrors(prev => { const next = { ...prev }; delete next.room_id; return next; });
+    }
+    if (roomId) {
+      fetchBeds(roomId);
+    } else {
+      setBeds([]);
+    }
+  };
+
   const handleSave = async () => {
+    setFormError('');
+    const hostelId = form.hostel_id || selectedHostel?.id || user?.hostel_id;
+    const validationErrors = validateForm(form, hostelId);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      const firstErrMsg = Object.values(validationErrors)[0];
+      setFormError(firstErrMsg);
+      toast.error(`Please fix errors: ${firstErrMsg}`);
+      return;
+    }
+
+    setErrors({});
+    setSaving(true);
     try {
-      const hostelId = form.hostel_id || selectedHostel?.id || user?.hostel_id;
-      if (!hostelId) { toast.error('Select a hostel'); return; }
-      if (form.aadhaar_number && form.aadhaar_number.length !== 12) {
-        toast.error("Aadhaar Number must be exactly 12 digits");
-        return;
+      const payload = {
+        ...form,
+        hostel_id: hostelId,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email?.trim() || '',
+        whatsapp: (form.whatsapp?.trim() || form.phone.trim()),
+        occupation: form.occupation?.trim() || '',
+        workplace: form.workplace?.trim() || '',
+        guardian_name: form.guardian_name?.trim() || '',
+        guardian_phone: form.guardian_phone?.trim() || '',
+        guardian_relation: form.guardian_relation?.trim() || '',
+        permanent_address: form.permanent_address?.trim() || '',
+        check_in_date: toISODateString(form.check_in_date),
+        agreement_start: toISODateString(form.agreement_start),
+        agreement_end: toISODateString(form.agreement_end),
+        room_id: form.room_id || null,
+        bed_id: form.bed_id || null,
+        monthly_rent: parseFloat(form.monthly_rent) || 0,
+        security_deposit: parseFloat(form.security_deposit) || 0
+      };
+
+      if (editing) {
+        await api.put(`/residents/${editing}`, payload);
+        toast.success('Resident updated successfully');
+      } else {
+        await api.post('/residents', payload);
+        toast.success('Resident added successfully');
       }
-      const payload = { ...form, hostel_id: hostelId, monthly_rent: parseFloat(form.monthly_rent) || 0, security_deposit: parseFloat(form.security_deposit) || 0 };
-      if (!payload.whatsapp) payload.whatsapp = payload.phone;
-      if (editing) { await api.put(`/residents/${editing}`, payload); toast.success('Resident updated'); }
-      else { await api.post('/residents', payload); toast.success('Resident added'); }
-      setDialogOpen(false); setEditing(null); fetchResidents();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Error saving'); }
+      setDialogOpen(false);
+      setEditing(null);
+      fetchResidents();
+    } catch (err) {
+      console.error('[ResidentsPage] Error saving resident:', err);
+      const resData = err.response?.data;
+      let detail = resData?.detail || resData?.message || resData?.error;
+      if (!detail && typeof resData === 'string' && resData.trim()) {
+        detail = resData.trim();
+      }
+      const errorMsg = formatApiError(detail) || err.message || 'Unable to save resident. Please try again.';
+      const displayMsg = `Unable to save resident: ${errorMsg}`;
+      setFormError(displayMsg);
+      toast.error(displayMsg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openDetail = async (r) => {
@@ -137,47 +324,108 @@ export default function ResidentsPage() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="add-resident-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white w-full sm:w-auto" onClick={() => { setEditing(null); setForm({ hostel_id: selectedHostel?.id || user?.hostel_id || '', name: '', phone: '', email: '', whatsapp: '', gender: 'male', occupation: '', workplace: '', room_id: '', bed_id: '', monthly_rent: 0, security_deposit: 0, guardian_name: '', guardian_phone: '', guardian_relation: '', permanent_address: '', check_in_date: new Date().toISOString().split('T')[0], agreement_start: '', agreement_end: '', aadhaar_number: '', aadhaar_url: '' }); setBeds([]); }}>
+              <Button data-testid="add-resident-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white w-full sm:w-auto" onClick={() => {
+                setEditing(null);
+                setErrors({});
+                setFormError('');
+                const initialHostelId = selectedHostel?.id || user?.hostel_id || (hostels.length > 0 ? hostels[0].id : '');
+                setForm({
+                  hostel_id: initialHostelId,
+                  name: '',
+                  phone: '',
+                  email: '',
+                  whatsapp: '',
+                  gender: 'male',
+                  occupation: '',
+                  workplace: '',
+                  room_id: '',
+                  bed_id: '',
+                  monthly_rent: 0,
+                  security_deposit: 0,
+                  guardian_name: '',
+                  guardian_phone: '',
+                  guardian_relation: '',
+                  permanent_address: '',
+                  check_in_date: getTodayLocalDate(),
+                  agreement_start: '',
+                  agreement_end: '',
+                  aadhaar_number: '',
+                  aadhaar_url: ''
+                });
+                if (initialHostelId) {
+                  api.get('/rooms', { params: { hostel_id: initialHostelId } }).then(res => setRooms(res.data || [])).catch(console.error);
+                }
+                setBeds([]);
+              }}>
                 <Plus className="w-4 h-4 mr-2" /> Add Resident
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit Resident' : 'Add New Resident'}</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
+                {formError && (
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs leading-relaxed" data-testid="resident-form-error-banner">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+                    <div className="flex-1 font-medium">{formError}</div>
+                    <button type="button" onClick={() => setFormError('')} className="text-red-400 hover:text-red-600">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 {user?.role === 'super_admin' && (
-                  <div><Label className="text-xs">Property</Label>
-                    <Select value={form.hostel_id} onValueChange={v => { setForm({...form, hostel_id: v, room_id: '', bed_id: ''}); api.get('/rooms', { params: { hostel_id: v }}).then(r => setRooms(r.data)); }}>
-                      <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
+                  <div>
+                    <Label className="text-xs">Property *</Label>
+                    <Select value={form.hostel_id} onValueChange={handleHostelChange}>
+                      <SelectTrigger className={errors.hostel_id ? 'border-red-500' : ''}><SelectValue placeholder="Select property" /></SelectTrigger>
                       <SelectContent>{hostels.map(h => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}</SelectContent>
                     </Select>
+                    {errors.hostel_id && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.hostel_id}</p>}
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div><Label className="text-xs">Name *</Label><Input data-testid="resident-name-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-                  <div><Label className="text-xs">Phone *</Label><Input data-testid="resident-phone-input" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
-                  <div><Label className="text-xs">Email</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+                  <div>
+                    <Label className="text-xs">Name *</Label>
+                    <Input data-testid="resident-name-input" className={errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''} value={form.name} onChange={e => updateField('name', e.target.value)} />
+                    {errors.name && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.name}</p>}
+                  </div>
+                  <div>
+                    <Label className="text-xs">Phone *</Label>
+                    <Input data-testid="resident-phone-input" className={errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''} value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="10-digit number" />
+                    {errors.phone && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.phone}</p>}
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input className={errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''} value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="name@example.com" />
+                    {errors.email && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.email}</p>}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div><Label className="text-xs">WhatsApp</Label><Input value={form.whatsapp} onChange={e => setForm({...form, whatsapp: e.target.value})} placeholder="Same as phone" /></div>
+                  <div><Label className="text-xs">WhatsApp</Label><Input value={form.whatsapp} onChange={e => updateField('whatsapp', e.target.value)} placeholder="Same as phone" /></div>
                   <div><Label className="text-xs">Gender</Label>
-                    <Select value={form.gender} onValueChange={v => setForm({...form, gender: v})}>
+                    <Select value={form.gender} onValueChange={v => updateField('gender', v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent>
                     </Select>
                   </div>
-                  <div><Label className="text-xs">Occupation</Label><Input value={form.occupation} onChange={e => setForm({...form, occupation: e.target.value})} /></div>
+                  <div><Label className="text-xs">Occupation</Label><Input value={form.occupation} onChange={e => updateField('occupation', e.target.value)} /></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div><Label className="text-xs">Workplace</Label><Input value={form.workplace} onChange={e => setForm({...form, workplace: e.target.value})} /></div>
+                  <div><Label className="text-xs">Workplace</Label><Input value={form.workplace} onChange={e => updateField('workplace', e.target.value)} /></div>
                   <div><Label className="text-xs">Room</Label>
-                    <Select value={form.room_id} onValueChange={v => { setForm({...form, room_id: v, bed_id: ''}); fetchBeds(v); const rm = rooms.find(r=>r.id===v); if(rm) setForm(f=>({...f, room_id: v, monthly_rent: rm.rent})); }}>
-                      <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
-                      <SelectContent>{rooms.map(r => <SelectItem key={r.id} value={r.id}>Room {r.room_number} ({r.occupied||0}/{r.capacity})</SelectItem>)}</SelectContent>
+                    <Select value={form.room_id || ''} onValueChange={handleRoomChange}>
+                      <SelectTrigger><SelectValue placeholder={rooms.length === 0 ? "No rooms available" : "Select room"} /></SelectTrigger>
+                      <SelectContent>
+                        {rooms.map(r => (
+                          <SelectItem key={r.id} value={r.id}>
+                            Room {r.room_number} ({r.occupied || 0}/{r.capacity})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div><Label className="text-xs">Bed</Label>
-                    <Select value={form.bed_id} onValueChange={v => setForm({...form, bed_id: v})}>
-                      <SelectTrigger><SelectValue placeholder="Select bed" /></SelectTrigger>
+                    <Select value={form.bed_id || ''} onValueChange={v => updateField('bed_id', v)}>
+                      <SelectTrigger><SelectValue placeholder={beds.length === 0 ? (form.room_id ? "No beds available" : "Select room first") : "Select bed"} /></SelectTrigger>
                       <SelectContent>{beds.map(b => <SelectItem key={b.id} value={b.id}>{b.bed_number}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -187,39 +435,53 @@ export default function ResidentsPage() {
                     <Label className="text-xs">Aadhaar Number</Label>
                     <Input
                       data-testid="resident-aadhaar-number-input"
+                      className={errors.aadhaar_number ? 'border-red-500 focus-visible:ring-red-500' : ''}
                       value={form.aadhaar_number || ''}
-                      onChange={e => setForm({...form, aadhaar_number: formatAadhaarInput(e.target.value)})}
+                      onChange={e => updateField('aadhaar_number', formatAadhaarInput(e.target.value))}
                       placeholder="123456789012"
                       maxLength={14}
                     />
+                    {errors.aadhaar_number && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.aadhaar_number}</p>}
                   </div>
                   <div>
                     <Label className="text-xs">Aadhaar Card Image URL</Label>
                     <Input
                       data-testid="resident-aadhaar-url-input"
+                      className={errors.aadhaar_url ? 'border-red-500 focus-visible:ring-red-500' : ''}
                       type="url"
                       value={form.aadhaar_url || ''}
-                      onChange={e => setForm({...form, aadhaar_url: e.target.value})}
+                      onChange={e => updateField('aadhaar_url', e.target.value)}
                       placeholder="https://example.com/aadhaar.pdf"
                     />
+                    {errors.aadhaar_url && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.aadhaar_url}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div><Label className="text-xs">Monthly Rent (₹)</Label><Input type="number" data-testid="resident-rent-input" value={form.monthly_rent} onChange={e => setForm({...form, monthly_rent: e.target.value})} /></div>
-                  <div><Label className="text-xs">Security Deposit (₹)</Label><Input type="number" value={form.security_deposit} onChange={e => setForm({...form, security_deposit: e.target.value})} /></div>
-                  <div><Label className="text-xs">Check-in Date</Label><Input type="date" value={form.check_in_date} onChange={e => setForm({...form, check_in_date: e.target.value})} /></div>
+                  <div><Label className="text-xs">Monthly Rent (₹)</Label><Input type="number" data-testid="resident-rent-input" value={form.monthly_rent} onChange={e => updateField('monthly_rent', e.target.value)} /></div>
+                  <div><Label className="text-xs">Security Deposit (₹)</Label><Input type="number" value={form.security_deposit} onChange={e => updateField('security_deposit', e.target.value)} /></div>
+                  <div><Label className="text-xs">Check-in Date</Label><Input type="date" value={form.check_in_date} onChange={e => updateField('check_in_date', e.target.value)} /></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div><Label className="text-xs">Guardian Name</Label><Input value={form.guardian_name} onChange={e => setForm({...form, guardian_name: e.target.value})} /></div>
-                  <div><Label className="text-xs">Guardian Phone</Label><Input value={form.guardian_phone} onChange={e => setForm({...form, guardian_phone: e.target.value})} /></div>
-                  <div><Label className="text-xs">Relation</Label><Input value={form.guardian_relation} onChange={e => setForm({...form, guardian_relation: e.target.value})} placeholder="Father" /></div>
+                  <div><Label className="text-xs">Guardian Name</Label><Input value={form.guardian_name} onChange={e => updateField('guardian_name', e.target.value)} /></div>
+                  <div>
+                    <Label className="text-xs">Guardian Phone</Label>
+                    <Input className={errors.guardian_phone ? 'border-red-500 focus-visible:ring-red-500' : ''} value={form.guardian_phone} onChange={e => updateField('guardian_phone', e.target.value)} />
+                    {errors.guardian_phone && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.guardian_phone}</p>}
+                  </div>
+                  <div><Label className="text-xs">Relation</Label><Input value={form.guardian_relation} onChange={e => updateField('guardian_relation', e.target.value)} placeholder="Father" /></div>
                 </div>
-                <div><Label className="text-xs">Permanent Address</Label><Input value={form.permanent_address} onChange={e => setForm({...form, permanent_address: e.target.value})} /></div>
+                <div><Label className="text-xs">Permanent Address</Label><Input value={form.permanent_address} onChange={e => updateField('permanent_address', e.target.value)} /></div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div><Label className="text-xs">Agreement Start</Label><Input type="date" value={form.agreement_start} onChange={e => setForm({...form, agreement_start: e.target.value})} /></div>
-                  <div><Label className="text-xs">Agreement End</Label><Input type="date" value={form.agreement_end} onChange={e => setForm({...form, agreement_end: e.target.value})} /></div>
+                  <div><Label className="text-xs">Agreement Start</Label><Input type="date" value={form.agreement_start} onChange={e => updateField('agreement_start', e.target.value)} /></div>
+                  <div>
+                    <Label className="text-xs">Agreement End</Label>
+                    <Input className={errors.agreement_end ? 'border-red-500 focus-visible:ring-red-500' : ''} type="date" value={form.agreement_end} onChange={e => updateField('agreement_end', e.target.value)} />
+                    {errors.agreement_end && <p className="text-[11px] text-red-600 mt-1 font-medium">{errors.agreement_end}</p>}
+                  </div>
                 </div>
-                <Button data-testid="save-resident-btn" onClick={handleSave} className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] text-white">{editing ? 'Update' : 'Add Resident'}</Button>
+                <Button data-testid="save-resident-btn" disabled={saving} onClick={handleSave} className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] text-white">
+                  {saving ? 'Saving...' : (editing ? 'Update' : 'Add Resident')}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -267,7 +529,36 @@ export default function ResidentsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(r.id); setForm({ hostel_id: r.hostel_id, name: r.name, phone: r.phone, email: r.email || '', whatsapp: r.whatsapp || '', gender: r.gender || 'male', occupation: r.occupation || '', workplace: r.workplace || '', room_id: r.room_id || '', bed_id: r.bed_id || '', monthly_rent: r.monthly_rent || 0, security_deposit: r.security_deposit || 0, guardian_name: r.guardian_name || '', guardian_phone: r.guardian_phone || '', guardian_relation: r.guardian_relation || '', permanent_address: r.permanent_address || '', check_in_date: r.check_in_date || '', agreement_start: r.agreement_start || '', agreement_end: r.agreement_end || '', aadhaar_number: r.aadhaar_number || r.id_number || '', aadhaar_url: r.aadhaar_url || '' }); setDialogOpen(true); }}><Pencil className="w-3.5 h-3.5 text-[#64748B]" /></Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => {
+                          setEditing(r.id);
+                          setErrors({});
+                          setFormError('');
+                          setForm({
+                            hostel_id: r.hostel_id,
+                            name: r.name,
+                            phone: r.phone,
+                            email: r.email || '',
+                            whatsapp: r.whatsapp || '',
+                            gender: r.gender || 'male',
+                            occupation: r.occupation || '',
+                            workplace: r.workplace || '',
+                            room_id: r.room_id || '',
+                            bed_id: r.bed_id || '',
+                            monthly_rent: r.monthly_rent || 0,
+                            security_deposit: r.security_deposit || 0,
+                            guardian_name: r.guardian_name || '',
+                            guardian_phone: r.guardian_phone || '',
+                            guardian_relation: r.guardian_relation || '',
+                            permanent_address: r.permanent_address || '',
+                            check_in_date: toISODateString(r.check_in_date),
+                            agreement_start: toISODateString(r.agreement_start),
+                            agreement_end: toISODateString(r.agreement_end),
+                            aadhaar_number: r.aadhaar_number || r.id_number || '',
+                            aadhaar_url: r.aadhaar_url || ''
+                          });
+                          if (r.room_id) fetchBeds(r.room_id);
+                          setDialogOpen(true);
+                        }}><Pencil className="w-3.5 h-3.5 text-[#64748B]" /></Button>
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleCheckout(r.id, r.name)} title="Check Out"><LogOutIcon className="w-3.5 h-3.5 text-amber-500" /></Button>
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleDelete(r.id)}><Trash2 className="w-3.5 h-3.5 text-red-500" /></Button>
                       </div>
