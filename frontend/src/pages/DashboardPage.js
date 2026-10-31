@@ -111,23 +111,23 @@ export default function DashboardPage() {
             Welcome back, {user?.name}. Here's your property & electricity performance summary.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <Button
             size="sm"
             onClick={() => navigate('/dashboard/electricity')}
-            className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs"
+            className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs flex-1 sm:flex-none justify-center h-9"
             data-testid="quick-view-electricity"
           >
-            <Zap className="w-3.5 h-3.5 mr-1.5" /> View Electricity Module
+            <Zap className="w-3.5 h-3.5 mr-1.5" /> View Electricity
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => navigate('/dashboard/electricity')}
-            className="border-slate-200 text-slate-700 hover:bg-slate-50 text-xs"
+            className="border-slate-200 text-slate-700 hover:bg-slate-50 text-xs flex-1 sm:flex-none justify-center h-9"
             data-testid="quick-generate-electricity"
           >
-            <Calculator className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Generate Electricity Bill
+            <Calculator className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Generate Bill
           </Button>
         </div>
       </div>
@@ -261,7 +261,54 @@ export default function DashboardPage() {
           </Button>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile View */}
+          <div className="md:hidden divide-y divide-slate-100" data-testid="recent-electricity-mobile-list">
+            {recentElectricity.length === 0 ? (
+              <div className="text-center py-8 text-[#94A3B8]">
+                <Zap className="w-8 h-8 mx-auto mb-2 text-[#CBD5E1]" />
+                <p className="text-xs">No electricity records available.</p>
+              </div>
+            ) : (
+              recentElectricity.map(eb => (
+                <div key={eb.id} className="p-4 space-y-2.5 hover:bg-slate-50/60 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm text-[#0F172A]">{eb.resident_name}</p>
+                      <p className="text-xs text-[#64748B]">Room {eb.room_number || '—'} &middot; {eb.billing_month}/{eb.billing_year}</p>
+                    </div>
+                    <Badge className={`text-[10px] font-semibold border shrink-0 ${eb.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                      {eb.payment_status === 'paid' ? 'PAID' : 'PENDING'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase font-medium">Consumption</span>
+                      <span className="font-medium text-slate-800">{eb.units_consumed?.toFixed(1)} units ({eb.previous_reading} → {eb.current_reading})</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-400 block text-[10px] uppercase font-medium">Bill Amount</span>
+                      <span className="font-bold text-slate-900 text-sm">₹{eb.total_amount?.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {eb.payment_status !== 'paid' && (
+                    <Button
+                      size="sm"
+                      className="w-full h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                      onClick={() => markElectricityPaid(eb.id)}
+                      data-testid={`dash-pay-elec-mobile-${eb.id}`}
+                    >
+                      <Check className="w-3.5 h-3.5 mr-1" /> Mark Paid
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm" data-testid="recent-electricity-table">
               <thead>
                 <tr className="border-b border-[#E2E8F0] bg-slate-50/30">

@@ -11,6 +11,7 @@ import { useWebsiteImage } from '../hooks/useWebsiteImages';
 export default function SearchListingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [mobileTab, setMobileTab] = useState('list'); // 'list' | 'map' on mobile
   const { 
     hostels, 
     loading, 
@@ -133,12 +134,36 @@ export default function SearchListingPage() {
             </select>
           </div>
         </div>
+
+        {/* Mobile View Toggle: List vs Map */}
+        <div className="lg:hidden px-4 pt-2.5 max-w-7xl mx-auto flex items-center justify-center">
+          <div className="flex items-center p-1 bg-white rounded-full border border-slate-200 shadow-sm w-full max-w-xs">
+            <button
+              onClick={() => setMobileTab('list')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all ${
+                mobileTab === 'list' ? 'bg-emerald-800 text-white shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>List ({filteredHostels.length})</span>
+            </button>
+            <button
+              onClick={() => setMobileTab('map')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all ${
+                mobileTab === 'map' ? 'bg-emerald-800 text-white shadow-sm' : 'text-slate-600'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Map</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Main Split Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-[1fr_460px] gap-6 relative">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-[1fr_460px] gap-6 relative pb-20 md:pb-6">
         {/* Listings column */}
-        <div className="space-y-6">
+        <div className={`space-y-6 ${mobileTab === 'map' ? 'hidden lg:block' : 'block'}`}>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-black text-slate-800 uppercase tracking-wide">
               {loading ? 'Finding Stays...' : `${filteredHostels.length} Properties Match`}
@@ -218,7 +243,7 @@ export default function SearchListingPage() {
         </div>
 
         {/* Map column - Sticks on desktop */}
-        <div className="h-[400px] lg:h-[calc(100vh-200px)] lg:sticky lg:top-[120px] rounded-3xl overflow-hidden order-first lg:order-last">
+        <div className={`rounded-2xl sm:rounded-3xl overflow-hidden lg:sticky lg:top-[120px] ${mobileTab === 'list' ? 'hidden lg:block h-[400px] lg:h-[calc(100vh-200px)]' : 'block h-[70vh]'}`}>
           <MapView searchLocation={searchQuery} />
         </div>
       </main>

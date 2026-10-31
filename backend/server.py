@@ -46,6 +46,10 @@ async def health():
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://subhouz.com",
+    "https://www.subhouz.com",
+    "http://subhouz.com",
+    "http://www.subhouz.com",
 ]
 frontend_url = os.environ.get("FRONTEND_URL")
 if frontend_url:
@@ -58,6 +62,7 @@ if cors_origins_env and cors_origins_env != "*":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(set(origins)),
+    allow_origin_regex=r"https?://(.*\.)?subhouz\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,36 +106,42 @@ async def api_health():
 
 @app.on_event("startup")
 async def startup_event():
-    await init_db()
-    db = get_db()
-    from services.search_db import init_search_db
-    await init_search_db(db)
-    
-    # Seed super admin
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@subhouz.com")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "SubhouzAdmin@2026")
-    
-    res = await db.table("users").select("*").eq("email", admin_email).execute()
-    existing = res.data[0] if res.data else None
-    
-    if existing is None:
-        hashed = hash_password(admin_password)
-        await db.table("users").insert({
-            "email": admin_email,
-            "password_hash": hashed,
-            "name": "Super Admin",
-            "role": "super_admin",
-            "hostel_id": None,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }).execute()
-        logger.info(f"Super Admin seeded: {admin_email}")
-    elif not verify_password(admin_password, existing["password_hash"]):
-        await db.table("users").update({
-            "password_hash": hash_password(admin_password),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }).eq("email", admin_email).execute()
-        logger.info(f"Super Admin password updated: {admin_email}")
+    try:
+        await init_db()
+        db = get_db()
+        from services.search_db import init_search_db
+        try:
+            await init_search_db(db)
+        except Exception as e:
+            logger.warning(f"Could not initialize search db: {e}")
+        
+        # Seed super admin
+        admin_email = os.environ.get("ADMIN_EMAIL", "admin@subhouz.com")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "SubhouzAdmin@2026")
+        
+        res = await db.table("users").select("*").eq("email", admin_email).execute()
+        existing = res.data[0] if res.data else None
+        
+        if existing is None:
+            hashed = hash_password(admin_password)
+            await db.table("users").insert({
+                "email": admin_email,
+                "password_hash": hashed,
+                "name": "Super Admin",
+                "role": "super_admin",
+                "hostel_id": None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).execute()
+            logger.info(f"Super Admin seeded: {admin_email}")
+        elif not verify_password(admin_password, existing["password_hash"]):
+            await db.table("users").update({
+                "password_hash": hash_password(admin_password),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("email", admin_email).execute()
+            logger.info(f"Super Admin password updated: {admin_email}")
+    except Exception as e:
+        logger.error(f"Failed to connect to database or seed super admin on startup: {e}")
     
     # Write test credentials
     creds_path = Path("/app/memory/test_credentials.md")

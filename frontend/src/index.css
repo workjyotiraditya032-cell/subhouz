@@ -121,3 +121,24 @@ code {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Mobile Safe Area & Touch Enhancements */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pb-safe-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 4.5rem);
+  }
+}
+
+@supports not (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe-nav {
+    padding-bottom: 5rem;
+  }
+}
+
+/* Touch optimization */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}

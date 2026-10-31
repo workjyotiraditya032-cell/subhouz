@@ -91,17 +91,17 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-[#FAFBFC] flex">
       {/* Sidebar overlay for mobile */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 lg:static z-50 h-full lg:h-auto transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} dashboard-sidebar flex flex-col`}>
+      <aside className={`fixed inset-y-0 left-0 lg:static z-50 h-full lg:h-auto w-72 max-w-[82vw] bg-white lg:bg-transparent shadow-2xl lg:shadow-none transition-transform duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} dashboard-sidebar flex flex-col`}>
         <div className="p-5 border-b border-[#E2E8F0] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="w-6 h-6 text-[#10B981]" />
             <span className="font-bold text-lg tracking-tight text-[#0F172A]" style={{ fontFamily: 'Outfit' }}>Subhouz</span>
           </div>
-          <button className="lg:hidden p-1 text-slate-400 hover:text-slate-600" onClick={() => setSidebarOpen(false)}>
+          <button className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" onClick={() => setSidebarOpen(false)}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -154,11 +154,15 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top bar */}
-        <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden p-2 rounded-lg hover:bg-[#F1F5F9]" onClick={() => setSidebarOpen(!sidebarOpen)} data-testid="mobile-menu-btn">
+        <header className="h-14 bg-white border-b border-[#E2E8F0] flex items-center justify-between px-3 sm:px-4 lg:px-6 sticky top-0 z-30">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button className="lg:hidden p-2 rounded-lg hover:bg-[#F1F5F9] text-slate-700" onClick={() => setSidebarOpen(!sidebarOpen)} data-testid="mobile-menu-btn" aria-label="Toggle menu">
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
+            <div className="flex items-center gap-1.5 lg:hidden">
+              <Building2 className="w-5 h-5 text-[#10B981]" />
+              <span className="font-bold text-base tracking-tight text-[#0F172A]" style={{ fontFamily: 'Outfit' }}>Subhouz</span>
+            </div>
             <div className="hidden sm:flex items-center gap-2 bg-[#F1F5F9] rounded-lg px-3 py-1.5">
               <Search className="w-4 h-4 text-slate-400" />
               <input
@@ -169,7 +173,7 @@ export default function DashboardLayout() {
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button className="p-2 rounded-lg hover:bg-[#F1F5F9] relative" data-testid="notifications-btn">
               <Bell className="w-5 h-5 text-slate-500" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
@@ -180,7 +184,7 @@ export default function DashboardLayout() {
               <DropdownMenuTrigger asChild>
                 <button
                   data-testid="header-user-menu-btn"
-                  className="flex items-center gap-2 pl-3 border-l border-[#E2E8F0] hover:opacity-80 transition-opacity focus:outline-none"
+                  className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-[#E2E8F0] hover:opacity-80 transition-opacity focus:outline-none"
                 >
                   {user?.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full object-cover border border-slate-200" />
@@ -218,19 +222,54 @@ export default function DashboardLayout() {
               size="sm"
               data-testid="header-logout-btn"
               onClick={() => setShowLogoutModal(true)}
-              className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 font-medium px-3 py-1.5 h-9 rounded-lg"
+              className="hidden sm:flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 font-medium px-3 py-1.5 h-9 rounded-lg"
             >
               <LogOut className="w-4 h-4 text-red-600" />
-              <span className="hidden sm:inline">Logout</span>
+              <span>Logout</span>
             </Button>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-x-hidden overflow-y-auto max-w-full">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-24 lg:pb-6 overflow-x-hidden overflow-y-auto max-w-full">
           <Outlet context={{ selectedHostel, hostels }} />
         </main>
       </div>
+
+      {/* Mobile Admin Bottom Navigation Bar */}
+      <nav aria-label="Admin mobile navigation" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 pb-safe shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          {[
+            { path: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+            { path: '/dashboard/rooms', label: 'Rooms', icon: DoorOpen },
+            { path: '/dashboard/residents', label: 'Residents', icon: Users },
+            { path: '/dashboard/rent-tracker', label: 'Rent', icon: CreditCard },
+          ].map(tab => {
+            const isActive = location.pathname === tab.path;
+            return (
+              <button
+                key={tab.path}
+                onClick={() => { navigate(tab.path); setSidebarOpen(false); }}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors min-w-[56px] ${
+                  isActive ? 'text-[#1D4ED8] font-semibold' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <tab.icon className={`w-5 h-5 ${isActive ? 'text-[#1D4ED8]' : 'text-slate-500'}`} />
+                <span className="text-[10px] mt-0.5">{tab.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setSidebarOpen(prev => !prev)}
+            className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors min-w-[56px] ${
+              sidebarOpen ? 'text-[#10B981] font-semibold' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">More</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Logout Confirmation Dialog */}
       <AlertDialog open={showLogoutModal} onOpenChange={setShowLogoutModal}>

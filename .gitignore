@@ -29,6 +29,7 @@ next-env.d.ts
 /build
 dist/
 dist
+*.zip
 
 # Environment files (comprehensive coverage)
 
@@ -87,3 +88,9 @@ frontend/node_modules/.cache/default-development/6.pack
 frontend/node_modules/.cache/default-development/8.pack
 frontend/node_modules/.cache/default-development/17.pack
 frontend/node_modules/.cache/default-development/9.pack
+frontend/node_modules/.cache/default-development/14.pack
+frontend/node_modules/.cache/default-development/14.pack
+frontend/node_modules/.cache/default-development/3.pack
+frontend/node_modules/.cache/default-development/3.pack
+frontend/node_modules/.cache/default-development/5.pack
+frontend/node_modules/.cache/default-development/5.pack

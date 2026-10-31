@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
-import { MapPin, Phone, Star, Users, DoorOpen, ArrowRight, Wifi, Shield, Camera, Car, Dumbbell, UtensilsCrossed, Waves, Wind, Droplets, Sun, ChevronDown, Search, SlidersHorizontal, Building2, Menu, X } from 'lucide-react';
+import { MapPin, Phone, Star, Users, DoorOpen, ArrowRight, Wifi, Shield, Camera, Car, Dumbbell, UtensilsCrossed, Waves, Wind, Droplets, Sun, ChevronDown, Search, SlidersHorizontal, Building2, Menu, X, Home, Send } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -176,6 +176,15 @@ export default function HostelListingPage() {
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('name');
   const [mobileNav, setMobileNav] = useState(false);
+  const [mobileTab, setMobileTab] = useState('list');
+
+  useEffect(() => {
+    if (mobileTab === 'map' && mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current.invalidateSize();
+      }, 200);
+    }
+  }, [mobileTab]);
 
   // Search states & Map integration
   const [searchQuery, setSearchQuery] = useState('');
@@ -435,8 +444,8 @@ export default function HostelListingPage() {
       </section>
 
       {/* ━━ FILTERS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div className="sticky top-16 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E0D8]/60 py-3 sm:py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+      <div className="sticky top-16 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#E8E0D8]/60 py-2.5 sm:py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar max-w-full pb-1 sm:pb-0">
             <span className="text-xs sm:text-sm font-medium text-[#6B5E54] shrink-0">Filter:</span>
             <div className="flex gap-1.5 sm:gap-2 shrink-0">
@@ -450,7 +459,7 @@ export default function HostelListingPage() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   data-testid={`filter-${f.value}`}
-                  className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                  className={`px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                     filter === f.value
                       ? 'bg-[#2D5F3F] text-white shadow-sm'
                       : 'bg-white border border-[#E8E0D8] text-[#6B5E54] hover:border-[#2D5F3F]/40 hover:text-[#2D5F3F]'
@@ -464,7 +473,7 @@ export default function HostelListingPage() {
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-[#8C7E72]" />
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="w-36 sm:w-40 h-8 text-xs border-[#E8E0D8] rounded-full bg-white" data-testid="sort-select">
+              <SelectTrigger className="w-32 sm:w-40 h-8 text-xs border-[#E8E0D8] rounded-full bg-white" data-testid="sort-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -476,14 +485,38 @@ export default function HostelListingPage() {
             </Select>
           </div>
         </div>
+
+        {/* Mobile View Toggle: List vs Map */}
+        <div className="lg:hidden px-4 pt-2.5 max-w-7xl mx-auto flex items-center justify-center">
+          <div className="flex items-center p-1 bg-white rounded-full border border-[#E8E0D8] shadow-sm w-full max-w-xs">
+            <button
+              onClick={() => setMobileTab('list')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold transition-all ${
+                mobileTab === 'list' ? 'bg-[#2D5F3F] text-white shadow-sm' : 'text-[#6B5E54]'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>List View ({filtered.length})</span>
+            </button>
+            <button
+              onClick={() => setMobileTab('map')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-semibold transition-all ${
+                mobileTab === 'map' ? 'bg-[#2D5F3F] text-white shadow-sm' : 'text-[#6B5E54]'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Map View</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ━━ HOSTEL GRID ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <section className="py-8 lg:py-12" data-testid="hostel-listing-grid">
-        <div className="max-w-[1600px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_580px] gap-8 items-start">
+      <section className="py-6 sm:py-8 lg:py-12" data-testid="hostel-listing-grid">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[1fr_480px] xl:grid-cols-[1fr_580px] gap-6 lg:gap-8 items-start">
           
           {/* Left Column: Properties Listings */}
-          <div className="space-y-6 order-2 lg:order-1 w-full animate-fade-in">
+          <div className={`space-y-6 w-full animate-fade-in ${mobileTab === 'map' ? 'hidden lg:block' : 'block'}`}>
             {loading ? (
               <div className="grid grid-cols-1 gap-6">
                 {[1, 2, 3].map(i => (
@@ -691,7 +724,7 @@ export default function HostelListingPage() {
           </div>
 
           {/* Right Column: Responsive & Sticky Map Container */}
-          <div className="w-full h-[320px] lg:h-[calc(100vh-175px)] rounded-3xl overflow-hidden border border-[#E8E0D8] shadow-md lg:shadow-xl order-1 lg:order-2 lg:sticky lg:top-[140px]">
+          <div className={`w-full rounded-2xl sm:rounded-3xl overflow-hidden border border-[#E8E0D8] shadow-md lg:shadow-xl lg:sticky lg:top-[140px] ${mobileTab === 'list' ? 'hidden lg:block h-[320px] lg:h-[calc(100vh-175px)]' : 'block h-[70vh]'}`}>
             <div ref={mapRef} className="w-full h-full bg-[#E8E0D8]/20 z-10" />
           </div>
 
@@ -699,8 +732,8 @@ export default function HostelListingPage() {
       </section>
 
       {/* ━━ FOOTER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <footer className="bg-[#1C1917] border-t border-white/5 py-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="bg-[#1C1917] border-t border-white/5 pt-8 pb-24 md:pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             {footerLogo.loading ? (
               <div className="w-6 h-6 rounded-md bg-white/10 animate-pulse" />
@@ -720,10 +753,49 @@ export default function HostelListingPage() {
           </div>
           <div className="flex items-center gap-6">
             <p className="text-xs text-[#4A4340]">&copy; {new Date().getFullYear()} Subhouz</p>
-            <Link to="/login" className="text-xs text-[#4A4340] hover:text-[#6B5E54] transition-colors" data-testid="listing-footer-admin">Admin Login</Link>
+            <Link to="/login" className="text-xs text-[#8C7E72] hover:text-white transition-colors" data-testid="listing-footer-admin">Admin Login</Link>
           </div>
         </div>
       </footer>
+
+      {/* ━━ FIXED MOBILE BOTTOM NAVIGATION BAR ━━ */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] py-1.5 px-3 flex md:hidden items-center justify-around pb-safe">
+        <button
+          onClick={() => navigate('/')}
+          className="flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-[#2D5F3F] min-w-[56px] py-1 active:scale-95 transition-transform"
+        >
+          <Home className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] font-semibold">Home</span>
+        </button>
+        <button
+          onClick={() => { setMobileTab('list'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          className="flex flex-col items-center justify-center gap-1 text-[#2D5F3F] min-w-[56px] py-1 active:scale-95 transition-transform"
+        >
+          <Building2 className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] font-bold">Stays</span>
+        </button>
+        <button
+          onClick={() => navigate('/#contact')}
+          className="flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-[#2D5F3F] min-w-[56px] py-1 active:scale-95 transition-transform"
+        >
+          <Send className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] font-semibold">Enquire</span>
+        </button>
+        <a
+          href="tel:+919937066699"
+          className="flex flex-col items-center justify-center gap-1 text-emerald-700 min-w-[56px] py-1 active:scale-95 transition-transform"
+        >
+          <Phone className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] font-semibold">Call</span>
+        </a>
+        <button
+          onClick={() => navigate('/login')}
+          className="flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-[#2D5F3F] min-w-[56px] py-1 active:scale-95 transition-transform"
+        >
+          <Shield className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] font-semibold">Admin</span>
+        </button>
+      </div>
     </div>
   );
 }

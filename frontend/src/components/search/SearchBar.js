@@ -157,10 +157,10 @@ export default function SearchBar({ placeholder = "Search by Area, Landmark, Col
   return (
     <div ref={containerRef} className="relative w-full max-w-3xl mx-auto z-50">
       {/* Search Input Container */}
-      <div className="relative flex flex-col md:flex-row items-stretch md:items-center bg-white/95 backdrop-blur-md rounded-2xl md:rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-slate-100 hover:border-emerald-500/30 transition-all duration-300 group overflow-hidden p-2 md:p-0 gap-2 md:gap-0">
-        <div className="flex items-center w-full md:flex-1">
-          <div className="pl-4 md:pl-6 text-slate-400 group-hover:text-emerald-600 transition-colors">
-            <Search className="w-5 h-5 stroke-[2.5]" />
+      <div className="relative flex flex-row items-center bg-white/95 backdrop-blur-md rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-slate-200/80 hover:border-emerald-500/40 transition-all duration-300 group p-1.5 sm:p-2 md:p-0">
+        <div className="flex items-center flex-1 min-w-0">
+          <div className="pl-3 sm:pl-4 md:pl-6 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </div>
           <input
             ref={inputRef}
@@ -174,14 +174,15 @@ export default function SearchBar({ placeholder = "Search by Area, Landmark, Col
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full py-3 md:py-4.5 px-3 md:px-4 text-slate-800 placeholder-slate-400/80 bg-transparent outline-none font-semibold text-[15px] leading-normal"
+            className="w-full py-2.5 sm:py-3 md:py-4.5 px-2.5 sm:px-3 md:px-4 text-slate-800 placeholder-slate-400/80 bg-transparent outline-none font-medium sm:font-semibold text-xs sm:text-sm md:text-[15px] leading-normal"
           />
           {searchQuery && (
             <button
               onClick={handleClear}
-              className="p-2 mr-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-all"
+              className="p-1.5 mr-1 sm:mr-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-all shrink-0"
+              aria-label="Clear search"
             >
-              <X className="w-4 h-4 stroke-[2.5]" />
+              <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
             </button>
           )}
         </div>
@@ -193,15 +194,15 @@ export default function SearchBar({ placeholder = "Search by Area, Landmark, Col
               navigate(`/search?location=${encodeURIComponent(searchQuery)}`);
             }
           }}
-          className="w-full md:w-auto md:mr-2 px-6 py-4 md:py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl md:rounded-full text-base md:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center h-[52px] md:h-auto"
+          className="shrink-0 px-3.5 sm:px-6 py-2 sm:py-2.5 md:py-2.5 md:mr-2 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white font-semibold rounded-full text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center h-9 sm:h-10 md:h-11"
         >
-          Search
+          <span>Search</span>
         </button>
       </div>
 
       {/* Suggestion Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-3 bg-white/98 backdrop-blur-xl border border-slate-100 rounded-3xl shadow-[0_12px_48px_rgba(0,0,0,0.12)] overflow-hidden transition-all duration-300">
+        <div className="absolute top-full left-0 right-0 mt-2 sm:mt-3 bg-white/98 backdrop-blur-xl border border-slate-100 rounded-2xl sm:rounded-3xl shadow-[0_12px_48px_rgba(0,0,0,0.14)] overflow-hidden transition-all duration-300">
           <SuggestionDropdown
             onSelect={handleSelect}
             recentSearches={recentSearches}

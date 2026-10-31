@@ -358,8 +358,8 @@ export default function HostelDetailPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#1C1917] border-t border-white/5 py-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="bg-[#1C1917] border-t border-white/5 pt-8 pb-24 md:pb-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             {footerLogo.loading ? (
               <div className="w-6 h-6 rounded-md bg-white/10 animate-pulse" />
@@ -378,10 +378,36 @@ export default function HostelDetailPage() {
           </div>
           <div className="flex items-center gap-6">
             <p className="text-xs text-[#4A4340]">&copy; {new Date().getFullYear()} Subhouz</p>
-            <Link to="/login" className="text-xs text-[#4A4340] hover:text-[#6B5E54]">Admin Login</Link>
+            <Link to="/login" className="text-xs text-[#8C7E72] hover:text-white">Admin Login</Link>
           </div>
         </div>
       </footer>
+
+      {/* ━━ STICKY MOBILE BOTTOM BAR ━━ */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 shadow-[0_-4px_24px_rgba(0,0,0,0.1)] p-3 flex md:hidden items-center justify-between gap-3 pb-safe">
+        <div>
+          <span className="text-[10px] text-[#8C7E72] uppercase tracking-wider block font-medium">Starting from</span>
+          <span className="text-lg font-bold text-[#2D5F3F]" style={{ fontFamily: "'Fraunces', serif" }}>
+            ₹{h.starting_rent?.toLocaleString()}<span className="text-xs font-normal text-slate-500">/mo</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {h.phone && (
+            <a
+              href={`tel:${h.phone}`}
+              className="w-10 h-10 rounded-full border border-emerald-600/30 text-[#2D5F3F] flex items-center justify-center bg-emerald-50 active:scale-95 transition-all"
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+          )}
+          <Button
+            onClick={() => document.getElementById('enquiry')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#2D5F3F] hover:bg-[#1F4A2E] text-white rounded-full px-5 h-10 text-xs font-semibold shadow-md active:scale-95 transition-all"
+          >
+            Enquire Now
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

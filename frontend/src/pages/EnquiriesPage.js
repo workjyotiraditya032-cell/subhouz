@@ -108,13 +108,13 @@ export default function EnquiriesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 bg-white border border-[#E2E8F0] rounded-lg px-3 py-1.5 flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex items-center gap-2 bg-white border border-[#E2E8F0] rounded-lg px-3 py-1.5 flex-1">
           <Search className="w-4 h-4 text-slate-400" />
           <input data-testid="enquiry-search" type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search enquiries..." className="bg-transparent text-sm border-none outline-none w-full" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-9 text-sm" data-testid="enquiry-status-filter">
+          <SelectTrigger className="w-full sm:w-36 h-9 text-sm" data-testid="enquiry-status-filter">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +130,74 @@ export default function EnquiriesPage() {
 
       {/* Table */}
       <Card className="border-[#E2E8F0] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-slate-100" data-testid="enquiries-mobile-list">
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12 text-[#94A3B8]">
+              <MessageCircle className="w-10 h-10 mx-auto mb-2 text-[#CBD5E1]" />
+              <p className="text-xs">No enquiries found</p>
+            </div>
+          ) : (
+            filtered.map(e => (
+              <div
+                key={e.id}
+                className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors cursor-pointer"
+                onClick={() => setSelected(e)}
+                data-testid={`enquiry-card-${e.id}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm text-[#0F172A]">{e.name}</p>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">{e.created_at ? new Date(e.created_at).toLocaleDateString() : '—'}</p>
+                  </div>
+                  <div onClick={ev => ev.stopPropagation()}>
+                    <Select value={e.status || 'new'} onValueChange={v => { updateEnquiry(e.id, { status: v }); }}>
+                      <SelectTrigger className={`h-7 w-28 text-[10px] font-semibold border rounded-full ${STATUS_STYLES[e.status] || STATUS_STYLES.new}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="contacted">Contacted</SelectItem>
+                        <SelectItem value="follow-up">Follow-up</SelectItem>
+                        <SelectItem value="converted">Converted</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {e.message && (
+                  <p className="text-xs text-slate-600 line-clamp-2 bg-slate-50 p-2 rounded-md border border-slate-100">
+                    "{e.message}"
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs text-slate-500">
+                  <span className="truncate max-w-[150px]">{e.preferred_hostel || 'General Enquiry'}</span>
+                  <div className="flex items-center gap-2" onClick={ev => ev.stopPropagation()}>
+                    {e.phone && (
+                      <a href={`tel:${e.phone}`} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-50 text-[#1D4ED8] font-medium text-xs">
+                        <Phone className="w-3 h-3" /> Call
+                      </a>
+                    )}
+                    {user?.role === 'super_admin' && (
+                      <button onClick={() => deleteEnquiry(e.id)} className="p-1 rounded text-red-500 hover:bg-red-50">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table data-testid="enquiries-table">
             <TableHeader>
               <TableRow>
@@ -190,7 +257,7 @@ export default function EnquiriesPage() {
 
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
           {selected && (
             <>
               <DialogHeader>

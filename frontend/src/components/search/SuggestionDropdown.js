@@ -68,14 +68,14 @@ export default function SuggestionDropdown({
   let lastType = null;
 
   return (
-    <div className="p-6 max-h-[420px] overflow-y-auto custom-scrollbar space-y-4">
+    <div className="p-3 sm:p-5 max-h-[55vh] sm:max-h-[420px] overflow-y-auto custom-scrollbar space-y-3 sm:space-y-4">
       {flattenedList.length === 0 ? (
-        <div className="text-center py-8 text-slate-400">
+        <div className="text-center py-6 sm:py-8 text-slate-400">
           <p className="text-sm font-semibold">No results match your search</p>
           <p className="text-xs mt-1">Try a different keyword or location</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {flattenedList.map((item, idx) => {
             const showHeader = item.type !== lastType;
             lastType = item.type;
@@ -84,15 +84,15 @@ export default function SuggestionDropdown({
             return (
               <div key={idx} className="space-y-1">
                 {showHeader && (
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-3 mb-1.5 flex items-center gap-1.5 first:mt-0">
+                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-2 sm:mt-3 mb-1.5 flex items-center gap-1.5 first:mt-0">
                     {renderIcon(item.type)} {getLabel(item.type)}
                   </h4>
                 )}
                 <button
                   onMouseEnter={() => setFocusedIndex(idx)}
                   onClick={() => onSelect(item)}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group ${
-                    isFocused ? 'bg-slate-100/90 text-emerald-800 scale-[0.99] shadow-sm' : 'hover:bg-slate-50 text-slate-700'
+                  className={`w-full text-left px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group min-h-[42px] ${
+                    isFocused ? 'bg-slate-100/90 text-emerald-800 scale-[0.99] shadow-sm' : 'hover:bg-slate-50 active:bg-slate-100 text-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate mr-3">

@@ -139,7 +139,7 @@ export default function RoomsPage() {
           <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Rooms & Beds</h1>
           <p className="text-sm text-[#64748B] mt-1">{filteredRooms.length} rooms found</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <Select value={bathroomFilter} onValueChange={setBathroomFilter}>
             <SelectTrigger className="w-full sm:w-44 text-xs h-9" data-testid="bathroom-filter-select">
               <SelectValue placeholder="Filter Bathroom" />
@@ -157,7 +157,7 @@ export default function RoomsPage() {
                 <Plus className="w-4 h-4 mr-2" /> Add Room
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
               <DialogHeader><DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit Room' : 'Add New Room'}</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
                 {user?.role === 'super_admin' && !editing && (

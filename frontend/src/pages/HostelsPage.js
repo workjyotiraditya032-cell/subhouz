@@ -171,25 +171,25 @@ export default function HostelsPage() {
                 <Plus className="w-4 h-4 mr-2" /> Add Property
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
               <DialogHeader>
                 <DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit Property' : 'Add New Property'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-2">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div><Label className="text-xs font-semibold text-[#475569]">Name *</Label><Input data-testid="hostel-name-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Property Name" /></div>
                   <div><Label className="text-xs font-semibold text-[#475569]">Code *</Label><Input data-testid="hostel-code-input" value={form.code} onChange={e => setForm({...form, code: e.target.value})} placeholder="JMH" /></div>
                 </div>
                 <div><Label className="text-xs font-semibold text-[#475569]">Address *</Label><Input data-testid="hostel-address-input" value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Full address" /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div><Label className="text-xs font-semibold text-[#475569]">City</Label><Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="Bengaluru" /></div>
                   <div><Label className="text-xs font-semibold text-[#475569]">State</Label><Input value={form.state} onChange={e => setForm({...form, state: e.target.value})} placeholder="Karnataka" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div><Label className="text-xs font-semibold text-[#475569]">Phone</Label><Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+91..." /></div>
                   <div><Label className="text-xs font-semibold text-[#475569]">Email</Label><Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@property.com" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-xs font-semibold text-[#475569]">Type</Label>
                     <Select value={form.hostel_type} onValueChange={v => setForm({...form, hostel_type: v})}>

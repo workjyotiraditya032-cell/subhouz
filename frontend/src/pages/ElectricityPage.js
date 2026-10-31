@@ -176,13 +176,13 @@ export default function ElectricityPage() {
           <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Electricity Billing</h1>
           <p className="text-sm text-[#64748B] mt-1">Manage meter readings, generate bills, and adjust entries</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
-            <span className="text-sm font-semibold w-32 text-center">{MONTH_NAMES[month-1]} {year}</span>
-            <Button variant="outline" size="sm" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-white border border-[#E2E8F0] p-1.5 rounded-xl shadow-xs">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="text-sm font-semibold min-w-[120px] text-center">{MONTH_NAMES[month-1]} {year}</span>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
           </div>
-          <Button onClick={generateBills} disabled={generating} className="bg-amber-500 hover:bg-amber-600 text-white" data-testid="generate-bills-btn">
+          <Button onClick={generateBills} disabled={generating} className="bg-amber-500 hover:bg-amber-600 text-white w-full sm:w-auto justify-center" data-testid="generate-bills-btn">
             {generating ? 'Generating...' : <><Calculator className="w-4 h-4 mr-2" />Generate Monthly Bills</>}
           </Button>
         </div>
@@ -210,11 +210,11 @@ export default function ElectricityPage() {
       <div className="flex justify-end">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="add-bill-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white" onClick={() => { setEditingBill(null); setForm({ resident_id: '', previous_reading: 0, current_reading: 0, rate_per_unit: 8, additional_charges: 0 }); }}>
+            <Button data-testid="add-bill-btn" className="bg-[#1D4ED8] hover:bg-[#1E40AF] text-white w-full sm:w-auto" onClick={() => { setEditingBill(null); setForm({ resident_id: '', previous_reading: 0, current_reading: 0, rate_per_unit: 8, additional_charges: 0 }); }}>
               <Plus className="w-4 h-4 mr-2" /> Add Bill
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
             <DialogHeader><DialogTitle style={{ fontFamily: 'Outfit' }}>{editingBill ? 'Edit Electricity Bill' : 'New Electricity Bill'}</DialogTitle></DialogHeader>
             <div className="space-y-4 mt-4">
               {!editingBill ? (
@@ -231,11 +231,11 @@ export default function ElectricityPage() {
                   <span className="font-semibold text-slate-900">{bills.find(b=>b.id===editingBill)?.resident_name}</span>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div><Label className="text-xs">Previous Reading</Label><Input type="number" data-testid="previous-reading" value={form.previous_reading} onChange={e => setForm({ ...form, previous_reading: e.target.value })} /></div>
                 <div><Label className="text-xs">Current Reading</Label><Input type="number" data-testid="current-reading" value={form.current_reading} onChange={e => setForm({ ...form, current_reading: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div><Label className="text-xs">Rate/Unit (₹)</Label><Input type="number" data-testid="rate-per-unit" value={form.rate_per_unit} onChange={e => setForm({ ...form, rate_per_unit: e.target.value })} /></div>
                 <div><Label className="text-xs">Additional Charges (₹)</Label><Input type="number" data-testid="additional-charges" value={form.additional_charges} onChange={e => setForm({ ...form, additional_charges: e.target.value })} /></div>
               </div>
@@ -251,7 +251,93 @@ export default function ElectricityPage() {
 
       {/* Bills table */}
       <Card className="border-[#E2E8F0] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-slate-100" data-testid="electricity-mobile-list">
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : bills.length === 0 ? (
+            <div className="text-center py-12 text-[#94A3B8]">
+              <Zap className="w-10 h-10 mx-auto mb-2 text-[#CBD5E1]" />
+              <p className="text-xs">No bills for this month. Click "Generate Monthly Bills" to create them.</p>
+            </div>
+          ) : (
+            bills.map(b => (
+              <div key={b.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors" data-testid={`bill-card-${b.id}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-sm text-[#0F172A]">{b.resident_name}</p>
+                    <p className="text-xs text-[#64748B]">Room {b.room_number || '—'}</p>
+                  </div>
+                  <Badge className={`text-[10px] font-semibold border shrink-0 ${b.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                    {b.payment_status === 'paid' ? 'PAID' : 'PENDING'}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-medium">Readings</span>
+                    <span className="font-medium text-slate-800">{b.previous_reading} → {b.current_reading} ({b.units_consumed?.toFixed(1)} u)</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 block text-[10px] uppercase font-medium">Amount</span>
+                    <span className="font-bold text-slate-900 text-sm">₹{b.total_amount?.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                  {b.payment_status !== 'paid' && (
+                    <Button
+                      size="sm"
+                      className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                      onClick={() => markPaid(b.id)}
+                      data-testid={`pay-bill-mobile-${b.id}`}
+                    >
+                      <Check className="w-3.5 h-3.5 mr-1" /> Mark Paid
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs text-slate-700 hover:bg-slate-100"
+                    title="Edit Reading/Bill"
+                    data-testid={`edit-bill-mobile-${b.id}`}
+                    onClick={() => {
+                      setEditingBill(b.id);
+                      setForm({
+                        resident_id: b.resident_id,
+                        previous_reading: b.previous_reading,
+                        current_reading: b.current_reading,
+                        rate_per_unit: b.rate_per_unit,
+                        additional_charges: b.additional_charges || 0
+                      });
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                    title="Undo Reading/Bill"
+                    data-testid={`undo-bill-mobile-${b.id}`}
+                    onClick={() => {
+                      setUndoingBill(b);
+                      setUndoModalOpen(true);
+                    }}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table data-testid="electricity-table">
             <TableHeader>
               <TableRow>

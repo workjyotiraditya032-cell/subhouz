@@ -77,10 +77,10 @@ export default function RentTrackerPage() {
           <h1 className="text-2xl font-semibold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Outfit' }}>Rent Tracker</h1>
           <p className="text-sm text-[#64748B] mt-1">Track monthly rent collections and status</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={prevMonth} data-testid="prev-month-btn"><ChevronLeft className="w-4 h-4" /></Button>
-          <span className="text-sm font-semibold text-[#0F172A] w-36 text-center" data-testid="current-month-display">{MONTH_NAMES[month - 1]} {year}</span>
-          <Button variant="outline" size="sm" onClick={nextMonth} data-testid="next-month-btn"><ChevronRight className="w-4 h-4" /></Button>
+        <div className="flex items-center justify-between sm:justify-end gap-2 bg-white border border-[#E2E8F0] p-1.5 rounded-xl shadow-xs">
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={prevMonth} data-testid="prev-month-btn"><ChevronLeft className="w-4 h-4" /></Button>
+          <span className="text-sm font-semibold text-[#0F172A] min-w-[130px] text-center" data-testid="current-month-display">{MONTH_NAMES[month - 1]} {year}</span>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={nextMonth} data-testid="next-month-btn"><ChevronRight className="w-4 h-4" /></Button>
         </div>
       </div>
 
@@ -112,7 +112,91 @@ export default function RentTrackerPage() {
 
       {/* Rent table */}
       <Card className="border-[#E2E8F0] shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-slate-100" data-testid="rent-mobile-list">
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : data?.entries?.length > 0 ? (
+            data.entries.map(entry => (
+              <div
+                key={entry.resident_id}
+                className="p-4 hover:bg-slate-50/60 transition-colors"
+                data-testid={`rent-card-${entry.resident_id}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-[#1D4ED8]/10 flex items-center justify-center text-sm font-bold text-[#1D4ED8] shrink-0">
+                      {entry.name?.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-[#0F172A] truncate">{entry.name}</p>
+                      <p className="text-xs text-[#64748B]">Room {entry.room_number || '—'} &middot; Bed {entry.bed_number || '—'}</p>
+                    </div>
+                  </div>
+                  <Badge className={`${statusStyle[entry.status]} text-xs font-semibold border shrink-0`} data-testid={`rent-status-mobile-${entry.resident_id}`}>
+                    {entry.status === 'paid' ? 'PAID' : entry.status === 'overdue' ? 'OVERDUE' : 'PENDING'}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between text-xs bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-medium">Monthly Rent</span>
+                    <span className="text-base font-bold text-slate-900">₹{entry.monthly_rent?.toLocaleString()}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 block text-[10px] uppercase font-medium">Receipt</span>
+                    <span className="text-xs text-slate-600 font-mono">
+                      {entry.receipt_number ? (
+                        <span className="flex items-center gap-1"><Receipt className="w-3 h-3 text-[#1D4ED8]" />{entry.receipt_number}</span>
+                      ) : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  {entry.status === 'paid' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-9 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 font-medium"
+                      onClick={() => handleMarkUnpaid(entry.resident_id)}
+                      data-testid={`undo-paid-mobile-${entry.resident_id}`}
+                    >
+                      <X className="w-3.5 h-3.5 mr-1.5" /> Revert to Unpaid
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className={`w-full h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm ${marking === entry.resident_id ? 'opacity-50' : ''}`}
+                      disabled={marking === entry.resident_id}
+                      onClick={() => handleMarkPaid(entry.resident_id, entry.name, entry.monthly_rent)}
+                      data-testid={`mark-paid-mobile-${entry.resident_id}`}
+                    >
+                      {marking === entry.resident_id ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Mark Rent Paid (₹{entry.monthly_rent?.toLocaleString()})
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-12 text-[#94A3B8]">
+              <CreditCard className="w-12 h-12 text-[#CBD5E1] mx-auto mb-3" />
+              <p className="text-sm">No residents found for this period</p>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <Table data-testid="rent-tracker-table">
             <TableHeader>
               <TableRow className="border-b border-[#E2E8F0]">

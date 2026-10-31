@@ -360,7 +360,7 @@ export default function ResidentsPage() {
                 <Plus className="w-4 h-4 mr-2" /> Add Resident
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
               <DialogHeader><DialogTitle style={{ fontFamily: 'Outfit' }}>{editing ? 'Edit Resident' : 'Add New Resident'}</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
                 {formError && (
@@ -493,7 +493,125 @@ export default function ResidentsPage() {
         <Card className="border-[#E2E8F0]"><CardContent className="py-12 text-center"><Users className="w-12 h-12 text-[#CBD5E1] mx-auto mb-3" /><p className="text-[#64748B]">{search ? 'No matching residents' : 'No residents yet'}</p></CardContent></Card>
       ) : (
         <Card className="border-[#E2E8F0] shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile Card List View */}
+          <div className="md:hidden divide-y divide-slate-100" data-testid="residents-mobile-list">
+            {filtered.map(r => (
+              <div
+                key={r.id}
+                className="p-4 hover:bg-slate-50/60 transition-colors"
+                data-testid={`resident-card-${r.id}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0" onClick={() => openDetail(r)}>
+                    <div className="w-10 h-10 rounded-full bg-[#1D4ED8]/10 flex items-center justify-center text-sm font-bold text-[#1D4ED8] shrink-0">
+                      {r.name?.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#0F172A] text-sm truncate">{r.name}</p>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        Room {r.room_number || '—'} &middot; Bed {r.bed_number || '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className={`text-[10px] shrink-0 ${r.id_verified ? 'bg-emerald-50 text-emerald-700' : (r.aadhaar_url || r.aadhaar_number || r.id_number) ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {r.id_verified ? 'Verified' : (r.aadhaar_url || r.aadhaar_number || r.id_number) ? 'Pending ID' : 'No ID'}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-medium">Rent</span>
+                    <span className="font-semibold text-slate-900">₹{r.monthly_rent?.toLocaleString()}/mo</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-medium">Phone</span>
+                    {r.phone ? (
+                      <a href={`tel:${r.phone}`} className="font-medium text-[#1D4ED8] hover:underline flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-[#1D4ED8]" />
+                        <span>{r.phone}</span>
+                      </a>
+                    ) : (
+                      <span className="text-slate-500">—</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-[#1D4ED8] hover:text-[#1E40AF] hover:bg-blue-50 px-2.5 h-8 font-medium"
+                    onClick={() => openDetail(r)}
+                  >
+                    View Details
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2.5 text-xs text-slate-700 hover:bg-slate-100"
+                      onClick={() => {
+                        setEditing(r.id);
+                        setErrors({});
+                        setFormError('');
+                        setForm({
+                          hostel_id: r.hostel_id,
+                          name: r.name,
+                          phone: r.phone,
+                          email: r.email || '',
+                          whatsapp: r.whatsapp || '',
+                          gender: r.gender || 'male',
+                          occupation: r.occupation || '',
+                          workplace: r.workplace || '',
+                          room_id: r.room_id || '',
+                          bed_id: r.bed_id || '',
+                          monthly_rent: r.monthly_rent || 0,
+                          security_deposit: r.security_deposit || 0,
+                          guardian_name: r.guardian_name || '',
+                          guardian_phone: r.guardian_phone || '',
+                          guardian_relation: r.guardian_relation || '',
+                          permanent_address: r.permanent_address || '',
+                          check_in_date: toISODateString(r.check_in_date),
+                          agreement_start: toISODateString(r.agreement_start),
+                          agreement_end: toISODateString(r.agreement_end),
+                          aadhaar_number: r.aadhaar_number || r.id_number || '',
+                          aadhaar_url: r.aadhaar_url || ''
+                        });
+                        if (r.room_id) fetchBeds(r.room_id);
+                        setDialogOpen(true);
+                      }}
+                      title="Edit Resident"
+                    >
+                      <Pencil className="w-3.5 h-3.5 mr-1 text-slate-600" />
+                      <span>Edit</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2.5 text-xs text-amber-600 hover:bg-amber-50 border-amber-200"
+                      onClick={() => handleCheckout(r.id, r.name)}
+                      title="Check Out"
+                    >
+                      <LogOutIcon className="w-3.5 h-3.5 mr-1" />
+                      <span>Out</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-500 hover:bg-red-50"
+                      onClick={() => handleDelete(r.id)}
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <Table data-testid="residents-table">
               <TableHeader>
                 <TableRow className="border-b border-[#E2E8F0]">
@@ -573,7 +691,7 @@ export default function ResidentsPage() {
 
       {/* ── Resident Detail Dialog ── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:w-full max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
           {detailResident && (
             <>
               <DialogHeader>
@@ -581,20 +699,22 @@ export default function ResidentsPage() {
               </DialogHeader>
 
               <Tabs defaultValue="profile" className="mt-4">
-                <TabsList className="bg-[#F1F5F9]">
-                  <TabsTrigger value="profile" className="text-xs" data-testid="tab-profile"><User className="w-3 h-3 mr-1" />Profile</TabsTrigger>
-                  <TabsTrigger value="documents" className="text-xs" data-testid="tab-documents"><FileText className="w-3 h-3 mr-1" />Documents & ID</TabsTrigger>
-                  <TabsTrigger value="emergency" className="text-xs" data-testid="tab-emergency"><AlertCircle className="w-3 h-3 mr-1" />Emergency</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs" data-testid="tab-history"><Calendar className="w-3 h-3 mr-1" />Payment History</TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto pb-1">
+                  <TabsList className="bg-[#F1F5F9] w-max sm:w-auto min-w-full justify-start">
+                    <TabsTrigger value="profile" className="text-xs shrink-0" data-testid="tab-profile"><User className="w-3 h-3 mr-1" />Profile</TabsTrigger>
+                    <TabsTrigger value="documents" className="text-xs shrink-0" data-testid="tab-documents"><FileText className="w-3 h-3 mr-1" />Documents & ID</TabsTrigger>
+                    <TabsTrigger value="emergency" className="text-xs shrink-0" data-testid="tab-emergency"><AlertCircle className="w-3 h-3 mr-1" />Emergency</TabsTrigger>
+                    <TabsTrigger value="history" className="text-xs shrink-0" data-testid="tab-history"><Calendar className="w-3 h-3 mr-1" />Payment History</TabsTrigger>
+                  </TabsList>
+                </div>
 
                 {/* Profile Tab */}
                 <TabsContent value="profile" className="space-y-4 mt-4">
-                  <div className="flex items-start gap-6">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                     <div className="w-20 h-20 rounded-xl bg-[#F1F5F9] border border-[#E2E8F0] overflow-hidden flex items-center justify-center shrink-0">
                       <User className="w-8 h-8 text-[#CBD5E1]" />
                     </div>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 flex-1 w-full">
                       {[
                         ['Name', detailResident.name],
                         ['Phone', detailResident.phone],

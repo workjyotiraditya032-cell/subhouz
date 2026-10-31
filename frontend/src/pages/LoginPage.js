@@ -48,10 +48,10 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md mx-4 relative z-10"
+        className="w-full max-w-md px-4 sm:px-6 relative z-10"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-8">
+        <div className="flex items-center justify-center gap-2.5 mb-6 sm:mb-8">
           {logo.loading ? (
             <div className="w-9 h-9 rounded-lg bg-white/10 animate-pulse" />
           ) : logo.image ? (
@@ -68,7 +68,7 @@ export default function LoginPage() {
           <span className="text-2xl font-semibold text-white tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>Subhouz</span>
         </div>
 
-        <div className="glass-card p-8">
+        <div className="glass-card p-6 sm:p-8 rounded-2xl sm:rounded-3xl">
           <h2 className="text-xl font-semibold text-white text-center mb-1" style={{ fontFamily: "'Fraunces', serif" }}>Admin Portal</h2>
           <p className="text-sm text-[#A39889] text-center mb-6">Sign in to manage your properties</p>
 
